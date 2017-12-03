@@ -1,0 +1,7 @@
+#!/bin/bash
+file="${1}.c"
+part="-${2}"
+input="input${1}.txt"
+gcc $file
+./a.out $part $input
+rm ./a.out
