@@ -2,37 +2,33 @@
 #include <stdlib.h>
 #include <string.h>
 
-int a(char *str, int len);
-int b(char *str, int len);
+#include "input.h"
+
+int a(char *str);
+int b(char *str);
 
 int main(int argc, char *argv[]) {
 
     if (argc != 3) 
         return 1;
 
-    char input[4096];
-    FILE *fp = fopen(argv[2], "r");
+    char *input = malloc(INPUT_SIZE);
 
-    int len = 0;
-    int c;
-
-    while ((c = getc(fp)) != EOF)
-        input[len++] = c;
-
-    input[len--] = '\0';    // Ignore null terminator when quoting len
-
-    free(fp);
+    if (giff(input, argv[2]) == -1)
+        fprintf(stderr, "Error getting input! Exiting...\n");
 
     if (strcmp(argv[1], "-a") == 0)
-        printf("Sum: %d\n", a(input, len));
+        printf("Sum: %d\n", a(input));
 
     if (strcmp(argv[1], "-b") == 0)
-        printf("Sum: %d\n", b(input, len));
+        printf("Sum: %d\n", b(input));
 
     return 0;
 }
 
-int a(char *str, int len) {
+int a(char *str) {
+
+    int len = strlen(str);
 
     int i, sum = 0;
     for (i = 0; i < len; i++) {
@@ -43,7 +39,9 @@ int a(char *str, int len) {
     return sum;
 }
 
-int b(char *str, int len) {
+int b(char *str) {
+
+    int len = strlen(str);
 
     int i, sum = 0;
     for (i = 0; i < len; i++) {

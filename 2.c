@@ -3,6 +3,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "input.h"
+
 int a(int i, int j, int nums[i][j]);
 int b(int i, int j, int n[i][j]);
 
@@ -11,21 +13,15 @@ int main(int argc, char *argv[]) {
     if (argc != 3)
         return 1;
 
-    char input[2048];
-    FILE *fp = fopen(argv[2], "r");
-
-    int len = 0;
-    int c;
-
-    while ((c = getc(fp)) != EOF)
-        input[len++] = c;
-
-    input[len] = '\0';
-
-    free(fp);
+    char *input = malloc(INPUT_SIZE);
+    
+    if (giff(input, argv[2]) == -1)
+        fprintf(stderr, "Error getting input! Exiting...\n");
 
     int i = 0;
     int rows = 0, cols = 0, max_cols = 0;
+    int len = strlen(input);
+
     while (i < len) {
 
         if (isspace(input[i])) {
@@ -33,7 +29,7 @@ int main(int argc, char *argv[]) {
             max_cols = (cols > max_cols) ? cols : max_cols;
         }
 
-        if (input[i] == '\n') {
+        if (input[i] == '\n' || i == len - 1) {
             rows++;
             cols = 0;
         }

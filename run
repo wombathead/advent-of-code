@@ -2,6 +2,6 @@
 file="${1}.c"
 part="-${2}"
 input="input${1}.txt"
-gcc $file
+gcc $file input.o -lm
 ./a.out $part $input
 rm ./a.out

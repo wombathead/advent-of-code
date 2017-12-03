@@ -3,6 +3,8 @@
 #include <math.h>
 #include <string.h>
 
+#include "input.h"
+
 int iterators[] = {1,3,5,7};
 
 int main(int argc, char *argv[]) {
@@ -10,7 +12,12 @@ int main(int argc, char *argv[]) {
     if (argc != 3)
         return -1;
 
-    int n = atoi(argv[2]);
+    char *input = malloc(INPUT_SIZE);
+
+    if (giff(input, argv[2]) == -1)
+        fprintf(stderr, "Error getting input! Exiting...\n");
+
+    int n = atoi(input);
 
     int a = (int) ceil(sqrt(n));
 
