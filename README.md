@@ -2,4 +2,4 @@
 Solutions to Advent of Code 2017 problems
 
 # Running a solution
-<code>./run <prob no.> <part></code>
+Simply type `./run <prob no.> <part>`
