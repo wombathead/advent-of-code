@@ -42,40 +42,43 @@
   (format T "~A~%" (day1a "input1.txt"))
   (format T "~A~%" (day1b "input1.txt")))
 
-(defun day2a (input)
-  " return the number of valid passwords from INPUT "
-  (let ((input (get-file input))
-		(valid 0))	;; number of invalid passwords
-	(setf input (mapcar #'str:words input))
-	(loop for r in input do
-		  (let ((lo (parse-integer (first (str:split "-" (first r)))))
-				(hi (parse-integer (second (str:split "-" (first r)))))
-				(c (char (second r) 0))
-				(password (third r))
-				char-frequency)
-			(setf char-frequency (count c password))
-			(if (and (>= char-frequency lo)
-					 (<= char-frequency hi))
-			  (incf valid))))
-	valid))
+(defun day2 ()
+  (defun get-passwords (input)
+	" convert parameters into list of lists ((x y character password)...) "
+	(let ((input (get-file input)))
+	  (mapcar #'(lambda (r)
+				  ;; build list (x y character password for each row
+				  (list
+					(parse-integer (first (str:split "-" (first r))))
+					(parse-integer (second (str:split "-" (first r))))
+					(char (second r) 0)
+					(third r)))
+			  ;; split input on spaces to get each field
+			  (mapcar #'str:words input))))
 
-(defun day2b (input)
-  (let ((input (get-file input))
-		(valid 0))	;; number of invalid passwords
-	(setf input (mapcar #'str:words input))
-	(loop for r in input do
-		  (let ((lo (parse-integer (first (str:split "-" (first r)))))
-				(hi (parse-integer (second (str:split "-" (first r)))))
-				(c (char (second r) 0))
-				(password (third r)))
-			(if (and
-				  (or (equal (char password (1- lo)) c)
-					  (equal (char password (1- hi)) c))
-				  (not (and
-						 (equal (char password (1- lo)) c)
-						 (equal (char password (1- hi)) c))))
-			  (incf valid))))
-	valid))
+  (defun valid-range (x y ch password)
+	" return T if CH appears between X and Y times in PASSWORD "
+	(let ((freq (count ch password)))
+	  (and (>= freq x) (<= freq y))))
+
+  (defun valid-position (x y ch password)
+	" return T if CH appears at position X xor position Y in PASSWORD "
+	(and
+	  (or (equal ch (char password (1- x)))
+		  (equal ch (char password (1- y))))
+	  (not (and (equal ch (char password (1- x)))
+				(equal ch (char password (1- y)))))))
+
+  (defun day2a (input)
+	(let ((input (get-passwords input)))
+	  (count T (mapcar #'(lambda (r) (apply #'valid-range r)) input))))
+
+  (defun day2b (input)
+	(let ((input (get-passwords input)))
+	  (count T (mapcar #'(lambda (r) (apply #'valid-position r)) input))))
+
+  (format T "~A~%" (day2a "input2.txt"))
+  (format T "~A~%" (day2b "input2.txt")))
 
 (defun day3 ()
   (defun prepare-map (input)
@@ -99,10 +102,14 @@
 	  collisions))
 
   (defun day3a (input)
-	(let ((terrain (prepare-map input))
-		  collisions)
-	  (setf collisions (loop for (dx dy) in '((1 1) (3 1) (5 1) (7 1) (1 2))
-							 collect (traverse terrain dx dy)))
-	  (apply #'* collisions)))
+	(let ((terrain (prepare-map input)))
+	  (traverse terrain 3 1)))
 
-  (day3a "input3.txt"))
+  (defun day3b (input)
+	(let ((terrain (prepare-map input)))
+	  ;; calculate collisions for all slopes, and multiply together
+	  (apply #'* (loop for (dx dy) in '((1 1) (3 1) (5 1) (7 1) (1 2))
+					   collect (traverse terrain dx dy)))))
+
+  (format T "~A~%" (day3a "input3.txt"))
+  (format T "~A~%" (day3b "input3.txt")))
