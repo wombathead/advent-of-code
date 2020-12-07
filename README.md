@@ -1,5 +1,9 @@
-# advent-of-code-2017
-Solutions to Advent of Code 2017 problems
+# advent-of-code
+Solutions to Advent of Code problems
 
-# Running a solution
-Simply type `./run <prob no.> <part>`
+## 2020
+
+## 2019
+
+## 2017
+To run a solution type `./run <prob no.> <part>`

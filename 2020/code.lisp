@@ -20,31 +20,23 @@
   (defun day1a (input)
     " find the X and Y from input such that their sum is 2020 and return X*Y "
     (let ((input (prepare-input input))
+          (numbers (make-hash-table))
           x y)
 
-      ;; TODO: great candidate to macroise!!!
-      (loop for a in input and i from 0 do
-            (loop for b in input and j from 0 do
-                  (unless (= i j)
-                    (if (= 2020 (+ a b))
-                        (progn
-                          (setf x a)
-                          (setf y b))))))
-      (* x y)))
+      (loop for i in input do
+            (setf (gethash i numbers) (- 2020 i)))
+      (loop for i in input do
+            (if (gethash (- 2020 i) numbers)
+                (return-from day1a (* i (- 2020 i)))))))
 
   (defun day1b (input)
-    (let ((input (prepare-input input))
-          x y z)
+    (let ((input (prepare-input input)))
       (loop for a in input and i from 0 do
             (loop for b in input and j from 0 do
                   (loop for c in input and k from 0 do
-                        (unless (or (= a b) (= a c) (= b c))
+                        (unless (or (= i j) (= i k) (= j k))
                           (if (= 2020 (+ a b c))
-                              (progn
-                                (setf x a)
-                                (setf y b)
-                                (setf z c)))))))
-      (* x y z)))
+                              (return-from day1b (* a b c)))))))))
 
   (format T "~A~%" (day1a "input1.txt"))
   (format T "~A~%" (day1b "input1.txt")))
@@ -182,7 +174,6 @@
             ((equal field "cid")
              t))))
 
-  ;; TODO: clean up by passing lambda
   (defun passport-type (passport validation-fn)
     (let ((fields-present (make-hash-table :test 'equal)))
       (loop for entry in passport do
@@ -198,22 +189,22 @@
 
   (defun day4a (input)
     (let ((passports (prepare-passports input))
-          (validation-fn #'(lambda (e) t)))
+          (no-validation #'(lambda (e) t)))
       (+ (count 'VALID (mapcar #'(lambda (p)
-                                   (passport-type p validation-fn))
+                                   (passport-type p no-validation))
                                passports))
          (count 'NPC (mapcar #'(lambda (p)
-                                 (passport-type p validation-fn))
+                                 (passport-type p no-validation))
                              passports)))))
 
   (defun day4b (input)
     (let ((passports (prepare-passports input))
-          (validation-fn #'(lambda (e) (validate-entry e))))
+          (entry-validation #'(lambda (e) (validate-entry e))))
       (+ (count 'VALID (mapcar #'(lambda (p)
-                                   (passport-type p validation-fn))
+                                   (passport-type p entry-validation))
                                passports))
          (count 'NPC (mapcar #'(lambda (p)
-                                 (passport-type p validation-fn))
+                                 (passport-type p entry-validation))
                              passports)))))
 
   (format T "~A~%" (day4a "input4.txt"))
