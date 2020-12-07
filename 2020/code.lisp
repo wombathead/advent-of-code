@@ -21,8 +21,7 @@
   (defun day1a (input)
     " find the X and Y from input such that their sum is 2020 and return X*Y "
     (let ((input (prepare-input input))
-          (numbers (make-hash-table))
-          x y)
+          (numbers (make-hash-table)))
 
       (loop for i in input do
             (setf (gethash i numbers) (- 2020 i)))
@@ -211,52 +210,97 @@
   (format T "~A~%" (day4a "input4.txt"))
   (format T "~A~%" (day4b "input4.txt")))
 
-(defun compute-row (row-str lower upper)
-  (if (= (length row-str) 1)
-      (if (eql #\F (char row-str 0))
-          lower
-          (1- upper))
-      (if (eql #\F (char row-str 0))
-          (compute-row (subseq row-str 2)
-                       lower
-                       (floor (+ upper lower) 2))
-          (compute-row (subseq row-str 1)
-                       (floor (+ upper lower) 2)
-                       upper))))
+(defun day5 ()
+  (defun compute-row (row-str lower upper)
+    (if (= (length row-str) 1)
+        (if (eql #\F (char row-str 0))
+            lower
+            (1- upper))
+        (if (eql #\F (char row-str 0))
+            (compute-row (subseq row-str 2)
+                         lower
+                         (floor (+ upper lower) 2))
+            (compute-row (subseq row-str 1)
+                         (floor (+ upper lower) 2)
+                         upper))))
 
-(defun compute-col (col-str lower upper)
-  (if (= (length col-str) 1)
-      (if (eql #\L (char col-str 0))
-          lower
-          (1- upper))
-      (if (eql #\L (char col-str 0))
-          (compute-col (subseq col-str 1)
-                       lower
-                       (floor (+ upper lower) 2))
-          (compute-col (subseq col-str 1)
-                       (floor (+ upper lower) 2)
-                       upper))))
+  (defun compute-col (col-str lower upper)
+    (if (= (length col-str) 1)
+        (if (eql #\L (char col-str 0))
+            lower
+            (1- upper))
+        (if (eql #\L (char col-str 0))
+            (compute-col (subseq col-str 1)
+                         lower
+                         (floor (+ upper lower) 2))
+            (compute-col (subseq col-str 1)
+                         (floor (+ upper lower) 2)
+                         upper))))
 
-(defun compute-seat-id (pass)
-  " simply interpret PASS as a binary string of the seat ID: F,L=0; B,R=1 "
-  (+ (* 8 (compute-row (subseq pass 0 7) 0 128))
-     (compute-col (subseq pass 7) 0 8)))
+  (defun compute-seat-id (pass)
+    (+ (* 8 (compute-row (subseq pass 0 7) 0 128))
+       (compute-col (subseq pass 7) 0 8)))
 
-(defun seat-id (pass)
-  (let ((str pass))
-    (setf str (cl-ppcre:regex-replace-all "F" str "0"))
-    (setf str (cl-ppcre:regex-replace-all "B" str "1"))
-    (setf str (cl-ppcre:regex-replace-all "L" str "0"))
-    (setf str (cl-ppcre:regex-replace-all "R" str "1"))
-    (parse-integer str :radix 2)))
+  (defun seat-id (pass)
+    " simply interpret PASS as a binary string of the seat ID: F,L=0; B,R=1 "
+    (let ((str pass))
+      (setf str (cl-ppcre:regex-replace-all "F" str "0"))
+      (setf str (cl-ppcre:regex-replace-all "B" str "1"))
+      (setf str (cl-ppcre:regex-replace-all "L" str "0"))
+      (setf str (cl-ppcre:regex-replace-all "R" str "1"))
+      (parse-integer str :radix 2)))
 
-(defun day5a (input)
-  (let ((passes (get-file input)))
-    (apply #'max (mapcar #'seat-id passes))))
+  (defun day5a (input)
+    (let ((passes (get-file input)))
+      (apply #'max (mapcar #'seat-id passes))))
 
-(defun day5b (input)
-  (let ((ids (sort (mapcar #'seat-id (get-file input)) #'<)))
-    ;; if two IDs differ by 2 then I am between them
-    (loop for (a b) on ids do
-          (if (= (- b a) 2)
-              (return-from day5b (1+ a))))))
+  (defun day5b (input)
+    (let ((ids (sort (mapcar #'seat-id (get-file input)) #'<)))
+      ;; if two IDs differ by 2 then I am between them
+      (loop for (a b) on ids do
+            (if (= (- b a) 2)
+                (return-from day5b (1+ a))))))
+
+  (format T "~A~%" (day5a "input5.txt"))
+  (format T "~A~%" (day5b "input5.txt")))
+
+(defun day6 ()
+  (defun prepare-answers (input)
+    (let ((file (get-file input))
+          (group-str "")
+          (group-size 0)
+          answers)
+      (loop for line in file do
+            (if (equal line "")
+                (progn (push (list group-size group-str) answers)
+                       (setf group-size 0)
+                       (setf group-str ""))
+                (progn (incf group-size)
+                       (setf group-str
+                             (concatenate 'string group-str line)))))
+      answers))
+
+  (defun day6a (input)
+    (let ((answers (prepare-answers input)))
+      (apply #'+ (mapcar
+                   ;; count the number of distinct characters 
+                   #'(lambda (a)
+                       (length (remove-duplicates (second a))))
+                   answers))))
+
+  (defun day6b (input)
+    (let ((answers (prepare-answers input)))
+      (apply #'+ (mapcar
+                   ;; count the number of times the frequency of a letter
+                   ;; equals the group size
+                   #'(lambda (a)
+                       (let ((group-size (first a))
+                             (answers (second a))
+                             (sum 0))
+                         (loop for question across (remove-duplicates answers) do
+                               (if (= (count question answers) group-size)
+                                   (incf sum)))
+                         sum))
+                     answers))))
+  (format T "~A~%" (day6a "input6.txt"))
+  (format T "~A~%" (day6b "input6.txt")))
