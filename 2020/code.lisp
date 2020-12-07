@@ -1,4 +1,5 @@
 (ql:quickload :str)
+(ql:quickload :cl-ppcre)
 
 (defun get-file (filename)
   (with-open-file (stream filename)
@@ -209,3 +210,53 @@
 
   (format T "~A~%" (day4a "input4.txt"))
   (format T "~A~%" (day4b "input4.txt")))
+
+(defun compute-row (row-str lower upper)
+  (if (= (length row-str) 1)
+      (if (eql #\F (char row-str 0))
+          lower
+          (1- upper))
+      (if (eql #\F (char row-str 0))
+          (compute-row (subseq row-str 2)
+                       lower
+                       (floor (+ upper lower) 2))
+          (compute-row (subseq row-str 1)
+                       (floor (+ upper lower) 2)
+                       upper))))
+
+(defun compute-col (col-str lower upper)
+  (if (= (length col-str) 1)
+      (if (eql #\L (char col-str 0))
+          lower
+          (1- upper))
+      (if (eql #\L (char col-str 0))
+          (compute-col (subseq col-str 1)
+                       lower
+                       (floor (+ upper lower) 2))
+          (compute-col (subseq col-str 1)
+                       (floor (+ upper lower) 2)
+                       upper))))
+
+(defun compute-seat-id (pass)
+  " simply interpret PASS as a binary string of the seat ID: F,L=0; B,R=1 "
+  (+ (* 8 (compute-row (subseq pass 0 7) 0 128))
+     (compute-col (subseq pass 7) 0 8)))
+
+(defun seat-id (pass)
+  (let ((str pass))
+    (setf str (cl-ppcre:regex-replace-all "F" str "0"))
+    (setf str (cl-ppcre:regex-replace-all "B" str "1"))
+    (setf str (cl-ppcre:regex-replace-all "L" str "0"))
+    (setf str (cl-ppcre:regex-replace-all "R" str "1"))
+    (parse-integer str :radix 2)))
+
+(defun day5a (input)
+  (let ((passes (get-file input)))
+    (apply #'max (mapcar #'seat-id passes))))
+
+(defun day5b (input)
+  (let ((ids (sort (mapcar #'seat-id (get-file input)) #'<)))
+    ;; if two IDs differ by 2 then I am between them
+    (loop for (a b) on ids do
+          (if (= (- b a) 2)
+              (return-from day5b (1+ a))))))
