@@ -7,12 +7,14 @@
           while line
           collect line)))
 
-(defun get-contents (filename)
-  " read FILENAME into a single string "
-  (with-open-file (stream filename)
-    (let ((contents (make-string (file-length stream))))
-      (read-sequence contents stream)
-      contents)))
+(defun xor (a b)
+  (and
+    (or a b)
+    (not (and a b))))
+
+(defun within-range (num lower upper)
+  " return T if NUM is between LOWER and UPPER "
+  (and (>= num lower) (<= num upper)))
 
 (defun day1 ()
   (defun prepare-input (input)
@@ -40,11 +42,6 @@
 
   (format T "~A~%" (day1a "input1.txt"))
   (format T "~A~%" (day1b "input1.txt")))
-
-(defun xor (a b)
-  (and
-    (or a b)
-    (not (and a b))))
 
 (defun day2 ()
   (defun get-passwords (input)
@@ -115,9 +112,6 @@
   (format T "~A~%" (day3a "input3.txt"))
   (format T "~A~%" (day3b "input3.txt")))
 
-(defun validate-range (num lower upper)
-  (and (>= num lower) (<= num upper)))
-
 (defun day4 ()
   (defun prepare-passports (input)
     (let ((file (get-file input))
@@ -144,19 +138,19 @@
         (setf units (subseq height (- n 2)))
         (setf value (parse-integer (subseq height 0 (- n 2))))
         (cond ((equal units "cm")
-               (validate-range value 150 193))
+               (within-range value 150 193))
               ((equal units "in")
-               (validate-range value 59 76))))))
+               (within-range value 59 76))))))
 
   (defun validate-entry (entry)
     (let ((field (first entry))
           (value (second entry)))
       (cond ((equal field "byr")
-             (validate-range (parse-integer value) 1920 2002))
+             (within-range (parse-integer value) 1920 2002))
             ((equal field "iyr")
-             (validate-range (parse-integer value) 2010 2020))
+             (within-range (parse-integer value) 2010 2020))
             ((equal field "eyr")
-             (validate-range (parse-integer value) 2020 2030))
+             (within-range (parse-integer value) 2020 2030))
             ((equal field "hgt")
              (validate-height value))
             ((equal field "hcl")
@@ -241,9 +235,9 @@
     (+ (* 8 (compute-row (subseq pass 0 7) 0 128))
        (compute-col (subseq pass 7) 0 8)))
 
-  (defun seat-id (pass)
+  (defun seat-id (boarding-pass)
     " simply interpret PASS as a binary string of the seat ID: F,L=0; B,R=1 "
-    (let ((str pass))
+    (let ((str boarding-pass))
       (setf str (cl-ppcre:regex-replace-all "F" str "0"))
       (setf str (cl-ppcre:regex-replace-all "B" str "1"))
       (setf str (cl-ppcre:regex-replace-all "L" str "0"))
@@ -301,6 +295,88 @@
                                (if (= (count question answers) group-size)
                                    (incf sum)))
                          sum))
-                     answers))))
+                   answers))))
+
   (format T "~A~%" (day6a "input6.txt"))
   (format T "~A~%" (day6b "input6.txt")))
+
+(defun get-contained-bags (str)
+  " convert string \"[color] bag contains x [color] bags, ...\" into list (bag, quantity) of contained bags "
+  (mapcar #'(lambda (x)
+              (list (format NIL "~{~A~^ ~}" (subseq (str:words x) 1 3))
+                    (parse-integer (first (str:words x)))))
+          (cl-ppcre:all-matches-as-strings "\\d+( \\w+){2}" str)))
+
+(defun create-contains-graph (input)
+  " create digraph where (u,v) in G iff bag u contains bag v "
+  (let ((bags (get-file input))
+        (edge-list (make-hash-table :test 'equal)))
+
+    ;; for each line, add edge FROM contained bag TO containing bag
+    (mapcar #'(lambda (l)
+                (let ((containing-bag (format NIL "~{~A~^ ~}"
+                                              (subseq (str:words l) 0 2))))
+                  (setf (gethash containing-bag edge-list)
+                        (append (gethash containing-bag edge-list)
+                                (get-contained-bags l)))))
+            bags)
+    edge-list))
+
+(defun create-contained-by-graph (input)
+  " create digraph where (u,v) in G iff bag u contains bag v "
+  (let ((bags (get-file input))
+        (edge-list (make-hash-table :test 'equal)))
+
+    ;; for each line, add edge FROM contained bag TO containing bag
+    (mapcar #'(lambda (l)
+                (let ((containing-bag (format NIL "~{~A~^ ~}"
+                                              (subseq (str:words l) 0 2))))
+                  (loop for bag in (get-contained-bags l) do
+                        (push containing-bag (gethash (first bag) edge-list)))))
+            bags)
+    edge-list))
+
+(defun breadth-first-search (s G)
+  " perform BFS traversal on G starting from S "
+  (let ((tree (make-hash-table :test 'equal))
+        (discovered (make-hash-table :test 'equal))
+        q)
+    (setf (gethash s discovered) T)  ; mark s as discoverd
+    (push s q)
+    (loop while q do
+          (let ((u (pop q)))
+            ;; for each node v adjacent to u
+            (loop for v in (gethash u G) do
+                  (unless (gethash v discovered)
+                    (setf (gethash v discovered) T) ; mark v discovered
+                    (setf q (append q (list v)))    ; enqueue v
+                    (push v (gethash u tree))))))   ; add edge in tree
+
+    ;; return the tree and the size of the graph
+    (values tree (hash-table-count discovered))))
+
+(defun contains (u G)
+  " return the number of bags BAG contains in G "
+  (if (gethash u G)
+      (reduce #'+ (mapcar #'(lambda (v)
+                              (let ((bag (first v))
+                                    (weight (second v)))
+                                (* weight (1+ (contains bag G)))))
+                          (gethash u G)))
+      0))
+
+(defun day7a (input)
+  (let ((G (create-contained-by-graph input))
+        (target-bag "shiny gold")
+        tree n)
+    (setf (values tree n) (breadth-first-search target-bag G))
+    (1- n)))
+
+(defun day7b (input)
+  (let ((G (create-contains-graph input))
+        (target-bag "shiny gold"))
+    (contains target-bag G)))
+
+(defun day7 ()
+  (format T "~D~%" (day7a "input7.txt"))
+  (format T "~D~%" (day7b "input7.txt")))
