@@ -145,6 +145,8 @@
   (defun validate-entry (entry)
     (let ((field (first entry))
           (value (second entry)))
+
+      ;; TODO: replace with read-from-string
       (cond ((equal field "byr")
              (within-range (parse-integer value) 1920 2002))
             ((equal field "iyr")
@@ -358,6 +360,7 @@
 (defun contains (u G)
   " return the number of bags BAG contains in G "
   (if (gethash u G)
+      ;; contains(u)= x(1+contains(v)) + y(1+contains(w)) ...
       (reduce #'+ (mapcar #'(lambda (v)
                               (let ((bag (first v))
                                     (weight (second v)))
@@ -380,3 +383,58 @@
 (defun day7 ()
   (format T "~D~%" (day7a "input7.txt"))
   (format T "~D~%" (day7b "input7.txt")))
+
+(defstruct instr
+  op
+  arg)
+
+(defun load-program (input)
+  (let ((file (get-file input)))
+    (mapcar #'(lambda (l)
+                ;; return a list (OP ARG VISITED)
+                (make-instr :op (read-from-string (first (str:words l)))
+                            :arg (parse-integer (second (str:words l)))))
+            file)))
+
+(defun execute-program (program)
+  (let ((acc 0)
+        (ip 0)
+        (dirty (make-array (length program) :initial-element NIL)))
+
+    (loop while (< ip (length program)) do
+          (let ((instr (nth ip program))
+                (is-dirty (aref dirty ip))
+                op arg)
+            (setf op (instr-op instr))
+            (setf arg (instr-arg instr))
+
+            (if is-dirty
+                (return-from execute-program (values acc 'LOOP))
+                (progn 
+                  (setf (aref dirty ip) T)
+                  (case op
+                    (ACC (incf acc arg) (incf ip))
+                    (JMP (incf ip arg))
+                    (NOP (incf ip)))))))
+    (values acc 'COMPLETE)))
+
+(defun determine-corruption (program)
+  (loop for i from 0 below (length program) do
+        (let ((p (mapcar #'copy-structure program))
+              instr acc status)
+          (setf instr (nth i p))
+          (unless (eql (instr-op instr) 'ACC)
+            (if (eql (instr-op instr) 'JMP)
+                (setf (instr-op (nth i p)) 'NOP)
+                (setf (instr-op (nth i p)) 'JMP))
+            (setf (values acc status) (execute-program p))
+            (if (eql status 'COMPLETE)
+                (return-from determine-corruption acc))))))
+
+(defun day8a (input)
+  (let ((program (load-program input)))
+    (execute-program program)))
+
+(defun day8b (input)
+  (let ((program (load-program input)))
+    (determine-corruption program)))
