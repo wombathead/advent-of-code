@@ -1,5 +1,5 @@
 # advent-of-code
-Solutions to Advent of Code problems
+Solutions to [Advent of Code][aoc] problems
 
 ## 2020
 
@@ -7,3 +7,5 @@ Solutions to Advent of Code problems
 
 ## 2017
 To run a solution type `./run <prob no.> <part>`
+
+[aoc]: https://adventofcode.com/

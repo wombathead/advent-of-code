@@ -1,6 +1,10 @@
 (ql:quickload :str)
 (ql:quickload :cl-ppcre)
 
+;; ---------------------------- ;;
+;;  UTILITY/GENERAL FUNCTIONS   ;;
+;; ---------------------------- ;;
+
 (defun get-file (filename)
   (with-open-file (stream filename)
     (loop for line = (read-line stream NIL)
@@ -15,6 +19,45 @@
 (defun within-range (num lower upper)
   " return T if NUM is between LOWER and UPPER "
   (and (>= num lower) (<= num upper)))
+
+(defun breadth-first-search (s G)
+  " perform BFS traversal on G starting from S "
+  (let ((tree (make-hash-table :test 'equal))
+        (discovered (make-hash-table :test 'equal))
+        q)
+    (setf (gethash s discovered) T)  ; mark s as discoverd
+    (push s q)
+    (loop while q do
+          (let ((u (pop q)))
+            ;; for each node v adjacent to u
+            (loop for v in (gethash u G) do
+                  (unless (gethash v discovered)
+                    (setf (gethash v discovered) T) ; mark v discovered
+                    (setf q (append q (list v)))    ; enqueue v
+                    (push v (gethash u tree))))))   ; add edge in tree
+
+    ;; return the tree and the size of the graph
+    (values tree (hash-table-count discovered))))
+
+(defun contiguous-sum (lst target)
+  " find a contiguous sequence of items in LST that sum to TARGET "
+  (let ((window (list (first lst)))
+        (i 0) (j 1)
+        (n (length lst)))
+    (loop while T do
+          (loop while (and (< (reduce #'+ window) target)
+                           (<= j n)) do
+                (setf window (subseq lst i (1+ (incf j)))))
+
+          (if (= (reduce #'+ window) target)
+              (return-from contiguous-sum window))
+
+          (loop while (> (reduce #'+ window) target) do
+                (setf window (subseq lst (incf i) (1+ j)))))))
+
+;; ---------------------------- ;;
+;;    DAY 1 - REPORT REPAIR     ;;
+;; ---------------------------- ;;
 
 (defun day1 ()
   (defun prepare-input (input)
@@ -42,6 +85,10 @@
 
   (format T "~A~%" (day1a "input1.txt"))
   (format T "~A~%" (day1b "input1.txt")))
+
+;; ---------------------------- ;;
+;; DAY 2 - PASSWORD PHILOSOPHY  ;;
+;; ---------------------------- ;;
 
 (defun day2 ()
   (defun get-passwords (input)
@@ -78,6 +125,10 @@
   (format T "~A~%" (day2a "input2.txt"))
   (format T "~A~%" (day2b "input2.txt")))
 
+;; ---------------------------- ;;
+;; DAY 3 - TOBOGGAN TRAJECTORY  ;;
+;; ---------------------------- ;;
+
 (defun day3 ()
   (defun prepare-map (input)
     (let ((terrain (get-file input)))
@@ -111,6 +162,10 @@
 
   (format T "~A~%" (day3a "input3.txt"))
   (format T "~A~%" (day3b "input3.txt")))
+
+;; ---------------------------- ;;
+;; DAY 4 - PASSPORT PROCESSING  ;;
+;; ---------------------------- ;;
 
 (defun day4 ()
   (defun prepare-passports (input)
@@ -206,6 +261,10 @@
   (format T "~A~%" (day4a "input4.txt"))
   (format T "~A~%" (day4b "input4.txt")))
 
+;; ---------------------------- ;;
+;;   DAY 5 - BINARY BOARDING    ;;
+;; ---------------------------- ;;
+
 (defun day5 ()
   (defun compute-row (row-str lower upper)
     (if (= (length row-str) 1)
@@ -260,6 +319,10 @@
   (format T "~A~%" (day5a "input5.txt"))
   (format T "~A~%" (day5b "input5.txt")))
 
+;; ---------------------------- ;;
+;;    DAY 6 - CUSTOM CUSTOMS    ;;
+;; ---------------------------- ;;
+
 (defun day6 ()
   (defun prepare-answers (input)
     (let ((file (get-file input))
@@ -302,139 +365,169 @@
   (format T "~A~%" (day6a "input6.txt"))
   (format T "~A~%" (day6b "input6.txt")))
 
-(defun get-contained-bags (str)
-  " convert string \"[color] bag contains x [color] bags, ...\" into list (bag, quantity) of contained bags "
-  (mapcar #'(lambda (x)
-              (list (format NIL "~{~A~^ ~}" (subseq (str:words x) 1 3))
-                    (parse-integer (first (str:words x)))))
-          (cl-ppcre:all-matches-as-strings "\\d+( \\w+){2}" str)))
-
-(defun create-contains-graph (input)
-  " create digraph where (u,v) in G iff bag u contains bag v "
-  (let ((bags (get-file input))
-        (edge-list (make-hash-table :test 'equal)))
-
-    ;; for each line, add edge FROM contained bag TO containing bag
-    (mapcar #'(lambda (l)
-                (let ((containing-bag (format NIL "~{~A~^ ~}"
-                                              (subseq (str:words l) 0 2))))
-                  (setf (gethash containing-bag edge-list)
-                        (append (gethash containing-bag edge-list)
-                                (get-contained-bags l)))))
-            bags)
-    edge-list))
-
-(defun create-contained-by-graph (input)
-  " create digraph where (u,v) in G iff bag u contains bag v "
-  (let ((bags (get-file input))
-        (edge-list (make-hash-table :test 'equal)))
-
-    ;; for each line, add edge FROM contained bag TO containing bag
-    (mapcar #'(lambda (l)
-                (let ((containing-bag (format NIL "~{~A~^ ~}"
-                                              (subseq (str:words l) 0 2))))
-                  (loop for bag in (get-contained-bags l) do
-                        (push containing-bag (gethash (first bag) edge-list)))))
-            bags)
-    edge-list))
-
-(defun breadth-first-search (s G)
-  " perform BFS traversal on G starting from S "
-  (let ((tree (make-hash-table :test 'equal))
-        (discovered (make-hash-table :test 'equal))
-        q)
-    (setf (gethash s discovered) T)  ; mark s as discoverd
-    (push s q)
-    (loop while q do
-          (let ((u (pop q)))
-            ;; for each node v adjacent to u
-            (loop for v in (gethash u G) do
-                  (unless (gethash v discovered)
-                    (setf (gethash v discovered) T) ; mark v discovered
-                    (setf q (append q (list v)))    ; enqueue v
-                    (push v (gethash u tree))))))   ; add edge in tree
-
-    ;; return the tree and the size of the graph
-    (values tree (hash-table-count discovered))))
-
-(defun contains (u G)
-  " return the number of bags BAG contains in G "
-  (if (gethash u G)
-      ;; contains(u)= x(1+contains(v)) + y(1+contains(w)) ...
-      (reduce #'+ (mapcar #'(lambda (v)
-                              (let ((bag (first v))
-                                    (weight (second v)))
-                                (* weight (1+ (contains bag G)))))
-                          (gethash u G)))
-      0))
-
-(defun day7a (input)
-  (let ((G (create-contained-by-graph input))
-        (target-bag "shiny gold")
-        tree n)
-    (setf (values tree n) (breadth-first-search target-bag G))
-    (1- n)))
-
-(defun day7b (input)
-  (let ((G (create-contains-graph input))
-        (target-bag "shiny gold"))
-    (contains target-bag G)))
+;; ---------------------------- ;;
+;;   DAY 7 - HANDY HAVERSACKS   ;;
+;; ---------------------------- ;;
 
 (defun day7 ()
+  (defun get-contained-bags (str)
+    " convert string \"[color] bag contains x [color] bags, ...\" into list (bag, quantity) of contained bags "
+    (mapcar #'(lambda (x)
+                (list (format NIL "~{~A~^ ~}" (subseq (str:words x) 1 3))
+                      (parse-integer (first (str:words x)))))
+            (cl-ppcre:all-matches-as-strings "\\d+( \\w+){2}" str)))
+
+  (defun create-contains-graph (input)
+    " create digraph where (u,v) in G iff bag u contains bag v "
+    (let ((bags (get-file input))
+          (edge-list (make-hash-table :test 'equal)))
+
+      ;; for each line, add edge FROM contained bag TO containing bag
+      (mapcar #'(lambda (l)
+                  (let ((containing-bag (format NIL "~{~A~^ ~}"
+                                                (subseq (str:words l) 0 2))))
+                    (setf (gethash containing-bag edge-list)
+                          (append (gethash containing-bag edge-list)
+                                  (get-contained-bags l)))))
+              bags)
+      edge-list))
+
+  (defun create-contained-by-graph (input)
+    " create digraph where (u,v) in G iff bag u contains bag v "
+    (let ((bags (get-file input))
+          (edge-list (make-hash-table :test 'equal)))
+
+      ;; for each line, add edge FROM contained bag TO containing bag
+      (mapcar #'(lambda (l)
+                  (let ((containing-bag (format NIL "~{~A~^ ~}"
+                                                (subseq (str:words l) 0 2))))
+                    (loop for bag in (get-contained-bags l) do
+                          (push containing-bag
+                                (gethash (first bag) edge-list)))))
+              bags)
+      edge-list))
+
+  (defun contains (u G)
+    " return the number of bags BAG contains in G "
+    (if (gethash u G)
+        ;; contains(u)= x(1+contains(v)) + y(1+contains(w)) ...
+        (reduce #'+ (mapcar #'(lambda (v)
+                                (let ((bag (first v))
+                                      (weight (second v)))
+                                  (* weight (1+ (contains bag G)))))
+                            (gethash u G)))
+        0))
+
+  (defun day7a (input)
+    (let ((G (create-contained-by-graph input))
+          (target-bag "shiny gold")
+          tree n)
+      (setf (values tree n) (breadth-first-search target-bag G))
+      (1- n)))
+
+  (defun day7b (input)
+    (let ((G (create-contains-graph input))
+          (target-bag "shiny gold"))
+      (contains target-bag G)))
+
   (format T "~D~%" (day7a "input7.txt"))
   (format T "~D~%" (day7b "input7.txt")))
 
-(defstruct instr
-  op
-  arg)
+;; ---------------------------- ;;
+;;   DAY 8 - HANDHELD HALTING   ;;
+;; ---------------------------- ;;
 
-(defun load-program (input)
-  (let ((file (get-file input)))
-    (mapcar #'(lambda (l)
-                ;; return a list (OP ARG VISITED)
-                (make-instr :op (read-from-string (first (str:words l)))
-                            :arg (parse-integer (second (str:words l)))))
-            file)))
+(defun day8 ()
+  (defstruct instr
+    op
+    arg)
 
-(defun execute-program (program)
-  (let ((acc 0)
-        (ip 0)
-        (dirty (make-array (length program) :initial-element NIL)))
+  (defun load-program (input)
+    (let ((file (get-file input)))
+      (mapcar #'(lambda (l)
+                  ;; return a list (OP ARG VISITED)
+                  (make-instr :op (read-from-string (first (str:words l)))
+                              :arg (parse-integer (second (str:words l)))))
+              file)))
 
-    (loop while (< ip (length program)) do
-          (let ((instr (nth ip program))
-                (is-dirty (aref dirty ip))
-                op arg)
-            (setf op (instr-op instr))
-            (setf arg (instr-arg instr))
+  (defun execute-program (program)
+    (let ((acc 0)
+          (ip 0)
+          (dirty (make-array (length program) :initial-element NIL)))
 
-            (if is-dirty
-                (return-from execute-program (values acc 'LOOP))
-                (progn 
-                  (setf (aref dirty ip) T)
-                  (case op
-                    (ACC (incf acc arg) (incf ip))
-                    (JMP (incf ip arg))
-                    (NOP (incf ip)))))))
-    (values acc 'COMPLETE)))
+      (loop while (< ip (length program)) do
+            (let ((instr (nth ip program))
+                  (is-dirty (aref dirty ip))
+                  op arg)
+              (setf op (instr-op instr))
+              (setf arg (instr-arg instr))
 
-(defun determine-corruption (program)
-  (loop for i from 0 below (length program) do
-        (let ((p (mapcar #'copy-structure program))
-              instr acc status)
-          (setf instr (nth i p))
-          (unless (eql (instr-op instr) 'ACC)
-            (if (eql (instr-op instr) 'JMP)
-                (setf (instr-op (nth i p)) 'NOP)
-                (setf (instr-op (nth i p)) 'JMP))
-            (setf (values acc status) (execute-program p))
-            (if (eql status 'COMPLETE)
-                (return-from determine-corruption acc))))))
+              (if is-dirty
+                  (return-from execute-program (values acc 'LOOP))
+                  (progn 
+                    (setf (aref dirty ip) T)
+                    (case op
+                      (ACC (incf acc arg) (incf ip))
+                      (JMP (incf ip arg))
+                      (NOP (incf ip)))))))
+      (values acc 'COMPLETE)))
 
-(defun day8a (input)
-  (let ((program (load-program input)))
-    (execute-program program)))
+  (defun determine-corruption (program)
+    " determine the instruction such that flipping NOP to JMP (and vice versa) causes the PROGRAM to complete successfully "
+    (loop for i from 0 below (length program) do
+          (let ((p (mapcar #'copy-structure program))
+                instr acc status)
+            (setf instr (nth i p))
+            (unless (eql (instr-op instr) 'ACC)
+              (if (eql (instr-op instr) 'JMP)
+                  (setf (instr-op (nth i p)) 'NOP)
+                  (setf (instr-op (nth i p)) 'JMP))
+              (setf (values acc status) (execute-program p))
+              (if (eql status 'COMPLETE)
+                  (return-from determine-corruption acc))))))
 
-(defun day8b (input)
-  (let ((program (load-program input)))
-    (determine-corruption program)))
+  (defun day8a (input)
+    (let ((program (load-program input)))
+      (execute-program program)))
+
+  (defun day8b (input)
+    (let ((program (load-program input)))
+      (determine-corruption program)))
+
+  (format T "~D~%" (day8a "input8.txt"))
+  (format T "~D~%" (day8b "input8.txt")))
+
+;; ---------------------------- ;;
+;;    DAY 9 - ENCODING ERROR    ;;
+;; ---------------------------- ;;
+
+(defun day9 ()
+  (defun is-valid? (num window)
+    " determine whether NUM is the sum of any two elements in WINDOW "
+    (loop for n in window and i from 0 do
+          (loop for m in window and j from 0 do
+                (unless (= i j)
+                  (if (= (+ n m) num)
+                      (return-from is-valid? T))))))
+
+  (defun find-invalid (nums window-size)
+    (loop for n in (subseq nums window-size) and i from 0 do
+          (let ((window (subseq nums i (+ i window-size))))
+            (if (not (is-valid? n window))
+                (return-from find-invalid n)))))
+
+  (defun day9a (input)
+    (let ((nums (mapcar #'parse-integer (get-file input)))
+          (window-size 25))
+      (find-invalid nums window-size)))
+
+  (defun day9b (input)
+    (let ((nums (mapcar #'parse-integer (get-file input)))
+          (window-size 25)
+          contiguous)
+      (setf contiguous
+            (sort (contiguous-sum nums (find-invalid nums window-size)) #'<))
+      (+ (first contiguous) (first (last contiguous)))))
+
+  (format T "~D~%" (day9a "input9.txt"))
+  (format T "~D~%" (day9b "input9.txt")))
