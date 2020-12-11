@@ -1,6 +1,8 @@
 (ql:quickload :str)
 (ql:quickload :cl-ppcre)
 
+(load "graph.lisp")
+
 ;; ---------------------------- ;;
 ;;  UTILITY/GENERAL FUNCTIONS   ;;
 ;; ---------------------------- ;;
@@ -20,24 +22,21 @@
   " return T if NUM is between LOWER and UPPER "
   (and (>= num lower) (<= num upper)))
 
-(defun breadth-first-search (s G)
-  " perform BFS traversal on G starting from S "
-  (let ((tree (make-hash-table :test 'equal))
-        (discovered (make-hash-table :test 'equal))
-        q)
-    (setf (gethash s discovered) T)  ; mark s as discoverd
-    (push s q)
-    (loop while q do
-          (let ((u (pop q)))
-            ;; for each node v adjacent to u
-            (loop for v in (gethash u G) do
-                  (unless (gethash v discovered)
-                    (setf (gethash v discovered) T) ; mark v discovered
-                    (setf q (append q (list v)))    ; enqueue v
-                    (push v (gethash u tree))))))   ; add edge in tree
-
-    ;; return the tree and the size of the graph
-    (values tree (hash-table-count discovered))))
+(defun binary-to-dec (bin-str zero-char lo hi)
+  " convert binary string BIN-STR with ZERO-CHAR representing 0 to decimal value "
+  (if (= (length bin-str) 1)
+      (if (eql zero-char (char bin-str 0))
+          lo
+          (1- hi))
+      (if (eql zero-char (char bin-str 0))
+          (binary-to-dec (subseq bin-str 1)
+                         zero-char
+                         lo
+                         (floor (+ hi lo) 2))
+          (binary-to-dec (subseq bin-str 1)
+                         zero-char
+                         (floor (+ hi lo) 2)
+                         hi))))
 
 (defun contiguous-sum (lst target)
   " find a contiguous sequence of items in LST that sum to TARGET "
@@ -264,37 +263,16 @@
 ;; ---------------------------- ;;
 ;;   DAY 5 - BINARY BOARDING    ;;
 ;; ---------------------------- ;;
-
 (defun day5 ()
-  (defun compute-row (row-str lower upper)
-    (if (= (length row-str) 1)
-        (if (eql #\F (char row-str 0))
-            lower
-            (1- upper))
-        (if (eql #\F (char row-str 0))
-            (compute-row (subseq row-str 2)
-                         lower
-                         (floor (+ upper lower) 2))
-            (compute-row (subseq row-str 1)
-                         (floor (+ upper lower) 2)
-                         upper))))
+  (defun compute-row (row-str)
+    (binary-to-dec row-str #\F 0 (expt 2 (length row-str))))
 
-  (defun compute-col (col-str lower upper)
-    (if (= (length col-str) 1)
-        (if (eql #\L (char col-str 0))
-            lower
-            (1- upper))
-        (if (eql #\L (char col-str 0))
-            (compute-col (subseq col-str 1)
-                         lower
-                         (floor (+ upper lower) 2))
-            (compute-col (subseq col-str 1)
-                         (floor (+ upper lower) 2)
-                         upper))))
+  (defun compute-col (col-str)
+    (binary-to-dec col-str #\L 0 (expt 2 (length col-str))))
 
   (defun compute-seat-id (pass)
-    (+ (* 8 (compute-row (subseq pass 0 7) 0 128))
-       (compute-col (subseq pass 7) 0 8)))
+    (+ (* 8 (compute-row (subseq pass 0 7)))
+       (compute-col (subseq pass 7))))
 
   (defun seat-id (boarding-pass)
     " simply interpret PASS as a binary string of the seat ID: F,L=0; B,R=1 "
@@ -422,7 +400,7 @@
     (let ((G (create-contained-by-graph input))
           (target-bag "shiny gold")
           tree n)
-      (setf (values tree n) (breadth-first-search target-bag G))
+      (setf (values tree n) (graph:breadth-first-search target-bag G))
       (1- n)))
 
   (defun day7b (input)
@@ -437,11 +415,11 @@
 ;;   DAY 8 - HANDHELD HALTING   ;;
 ;; ---------------------------- ;;
 
-(defun day8 ()
-  (defstruct instr
-    op
-    arg)
+(defstruct instr
+  op
+  arg)
 
+(defun day8 ()
   (defun load-program (input)
     (let ((file (get-file input)))
       (mapcar #'(lambda (l)
@@ -473,8 +451,9 @@
       (values acc 'COMPLETE)))
 
   (defun determine-corruption (program)
-    " determine the instruction such that flipping NOP to JMP (and vice versa) causes the PROGRAM to complete successfully "
+    " determine the instruction such that flipping NOP to JMP (or vice versa) causes PROGRAM to complete successfully (to the final instruction) "
     (loop for i from 0 below (length program) do
+          ;; DEEP COPY means we can modify P without changing PROGRAM
           (let ((p (mapcar #'copy-structure program))
                 instr acc status)
             (setf instr (nth i p))
@@ -531,3 +510,39 @@
 
   (format T "~D~%" (day9a "input9.txt"))
   (format T "~D~%" (day9b "input9.txt")))
+
+(defun make-joltage-graph (joltages)
+  (let ((G (make-hash-table :test 'equal)))
+    (loop for u in joltages and i from 0 do
+          (loop for v in (subseq joltages (1+ i)) do
+                (if (<= (- v u) 3)
+                    (push v (gethash u G))
+                    (return))))
+    G))
+
+(defun day10a (input)
+  (let ((joltages (mapcar #'parse-integer (get-file input)))
+        differences)
+
+    ;; for the adapter
+    (push 0 joltages)
+    ;; for your device
+    (push (+ 3 (reduce #'max joltages)) joltages)
+
+    (setf differences (loop for (a b) on (sort joltages #'<) collect
+                            (unless (eql b NIL)
+                              (- b a))))
+    (* (count 1 differences) (count 3 differences))))
+
+(defun day10b (input)
+  (let ((joltages (mapcar #'parse-integer (get-file input)))
+        (G (make-hash-table :test 'equal))
+        max-adapter)
+
+    (push 0 joltages)
+    (setf max-adapter (+ 3 (reduce #'max joltages)))
+    (push max-adapter joltages)
+    (setf joltages (sort joltages #'<))
+
+    (setf G (make-joltage-graph joltages))
+    (graph:count-paths G 0 max-adapter)))
