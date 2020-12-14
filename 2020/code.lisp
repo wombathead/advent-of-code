@@ -1,5 +1,6 @@
 (ql:quickload :str)
 (ql:quickload :cl-ppcre)
+(ql:quickload :alexandria)
 
 (load "graph.lisp")
 
@@ -166,103 +167,103 @@
 ;; DAY 4 - PASSPORT PROCESSING  ;;
 ;; ---------------------------- ;;
 
-(defun day4 ()
-  (defun prepare-passports (input)
-    (let ((file (get-file input))
-          current-passport
-          passports)
-      ;; collect lines into passports
-      (loop for line in file do
-            (if (equal line "")
-                (progn
-                  (let (cp)
-                    (loop for entry in current-passport do
-                          (let ((field (first (str:split ":" entry)))
-                                (value (second (str:split ":" entry))))
-                            (push (list field value) cp)))
-                    (push cp passports))
-                  (setf current-passport '()))
-                (setf current-passport (append (str:words line) current-passport))))
-      passports))
+(defun prepare-passports (input)
+  (let ((file (get-file input))
+        current-passport
+        passports)
+    ;; collect lines into passports
+    (loop for line in file do
+          (if (equal line "")
+              (progn
+                (let (cp)
+                  (loop for entry in current-passport do
+                        (let ((field (first (str:split ":" entry)))
+                              (value (second (str:split ":" entry))))
+                          (push (list field value) cp)))
+                  (push cp passports))
+                (setf current-passport '()))
+              (setf current-passport (append (str:words line) current-passport))))
+    passports))
 
-  (defun validate-height (height)
-    (let ((n (length height))
-          value units)
-      (unless (< (length height) 3)
-        (setf units (subseq height (- n 2)))
-        (setf value (parse-integer (subseq height 0 (- n 2))))
-        (cond ((equal units "cm")
-               (within-range value 150 193))
-              ((equal units "in")
-               (within-range value 59 76))))))
+(defun validate-height (height)
+  (let ((n (length height))
+        value units)
+    (unless (< (length height) 3)
+      (setf units (subseq height (- n 2)))
+      (setf value (parse-integer (subseq height 0 (- n 2))))
+      (cond ((equal units "cm")
+             (within-range value 150 193))
+            ((equal units "in")
+             (within-range value 59 76))))))
 
-  (defun validate-entry (entry)
-    (let ((field (first entry))
-          (value (second entry)))
+(defun validate-entry (entry)
+  (let ((field (first entry))
+        (value (second entry)))
 
-      ;; TODO: replace with read-from-string
-      (cond ((equal field "byr")
-             (within-range (parse-integer value) 1920 2002))
-            ((equal field "iyr")
-             (within-range (parse-integer value) 2010 2020))
-            ((equal field "eyr")
-             (within-range (parse-integer value) 2020 2030))
-            ((equal field "hgt")
-             (validate-height value))
-            ((equal field "hcl")
-             (and (equal #\# (char value 0))
-                  (= (length (subseq value 1)) 6)
-                  ;; TODO: better way to do this (with stl)
-                  (every #'(lambda (c)
-                             (member c '(#\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9
-                                         #\a #\b #\c #\d #\e #\f)))
-                         (subseq value 1))))
-            ((equal field "ecl")
-             (member value '("amb" "blu" "brn" "gry" "grn" "hzl" "oth") :test 'equal))
-            ((equal field "pid")
-             (and (= (length value) 9) (every #'digit-char-p value)))
-            ((equal field "cid")
-             t))))
+    ;; TODO: replace with read-from-string
+    (cond ((equal field "byr")
+           (within-range (parse-integer value) 1920 2002))
+          ((equal field "iyr")
+           (within-range (parse-integer value) 2010 2020))
+          ((equal field "eyr")
+           (within-range (parse-integer value) 2020 2030))
+          ((equal field "hgt")
+           (validate-height value))
+          ((equal field "hcl")
+           (and (equal #\# (char value 0))
+                (= (length (subseq value 1)) 6)
+                ;; TODO: better way to do this (with stl)
+                (every #'(lambda (c)
+                           (member c '(#\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9
+                                       #\a #\b #\c #\d #\e #\f)))
+                       (subseq value 1))))
+          ((equal field "ecl")
+           (member value '("amb" "blu" "brn" "gry" "grn" "hzl" "oth") :test 'equal))
+          ((equal field "pid")
+           (and (= (length value) 9) (every #'digit-char-p value)))
+          ((equal field "cid")
+           t))))
 
-  (defun passport-type (passport validation-fn)
-    (let ((fields-present (make-hash-table :test 'equal)))
-      (loop for entry in passport do
-            (if (funcall validation-fn entry)
-                (setf (gethash (first entry) fields-present) T)))
-      (let ((c (hash-table-count fields-present)))
-        (cond ((= c 8)
-               'VALID)
-              ((and (= c 7) (equal (gethash "cid" fields-present) NIL))
-               'NPC)
-              (t
-               'INVALID)))))
+(defun passport-type (passport validation-fn)
+  (let ((fields-present (make-hash-table :test 'equal)))
+    (loop for entry in passport do
+          (if (funcall validation-fn entry)
+              (setf (gethash (first entry) fields-present) T)))
+    (let ((c (hash-table-count fields-present)))
+      (cond ((= c 8)
+             'VALID)
+            ((and (= c 7) (equal (gethash "cid" fields-present) NIL))
+             'NPC)
+            (t
+             'INVALID)))))
 
-  (defun day4a (input)
-    (let ((passports (prepare-passports input))
-          (no-validation #'(lambda (e) t)))
-      (+ (count 'VALID (mapcar #'(lambda (p)
-                                   (passport-type p no-validation))
-                               passports))
-         (count 'NPC (mapcar #'(lambda (p)
-                                 (passport-type p no-validation))
-                             passports)))))
+(defun day4a (input)
+  (let ((passports (prepare-passports input)))
+    (+ (count 'VALID (mapcar #'(lambda (p)
+                                 (passport-type p (constantly T)))
+                             passports))
+       (count 'NPC (mapcar #'(lambda (p)
+                               (passport-type p (constantly T)))
+                           passports)))))
 
-  (defun day4b (input)
-    (let ((passports (prepare-passports input))
-          (entry-validation #'(lambda (e) (validate-entry e))))
-      (+ (count 'VALID (mapcar #'(lambda (p)
-                                   (passport-type p entry-validation))
-                               passports))
-         (count 'NPC (mapcar #'(lambda (p)
+(defun day4b (input)
+  (let ((passports (prepare-passports input))
+        (entry-validation #'(lambda (e) (validate-entry e))))
+    (+ (count 'VALID (mapcar #'(lambda (p)
                                  (passport-type p entry-validation))
-                             passports)))))
+                             passports))
+       (count 'NPC (mapcar #'(lambda (p)
+                               (passport-type p entry-validation))
+                           passports)))))
 
+(defun day4 ()
   (format T "~A~%" (day4a "input4.txt"))
   (format T "~A~%" (day4b "input4.txt")))
 
 ;; ---------------------------- ;;
 ;;   DAY 5 - BINARY BOARDING    ;;
 ;; ---------------------------- ;;
+
 (defun day5 ()
   (defun compute-row (row-str)
     (binary-to-dec row-str #\F 0 (expt 2 (length row-str))))
@@ -511,6 +512,10 @@
   (format T "~D~%" (day9a "input9.txt"))
   (format T "~D~%" (day9b "input9.txt")))
 
+;; ---------------------------- ;;
+;;    DAY 10 - ADAPTER ARRAY    ;;
+;; ---------------------------- ;;
+
 (defun make-joltage-graph (joltages)
   (let ((G (make-hash-table :test 'equal)))
     (loop for u in joltages and i from 0 do
@@ -529,9 +534,9 @@
     ;; for your device
     (push (+ 3 (reduce #'max joltages)) joltages)
 
-    (setf differences (loop for (a b) on (sort joltages #'<) collect
-                            (unless (eql b NIL)
-                              (- b a))))
+    (setf differences (loop for (a b) on (sort joltages #'<)
+                            collect (unless (eql b NIL)
+                                      (- b a))))
     (* (count 1 differences) (count 3 differences))))
 
 (defun day10b (input)
@@ -546,3 +551,165 @@
 
     (setf G (make-joltage-graph joltages))
     (graph:count-paths G 0 max-adapter)))
+
+;; ---------------------------- ;;
+;;   DAY 11 - SEATING SYSTEM    ;;
+;; ---------------------------- ;;
+
+(defun seat-occupied? (ch)
+  (char= ch #\#))
+
+(defun seat-empty? (ch)
+  (char= ch #\L))
+
+(defun count-occupied-seats (grid)
+  (let ((occupied 0))
+    (loop for j from 0 below (first (array-dimensions grid)) do
+          (loop for i from 0 below (second (array-dimensions grid)) do
+                (if (char= (aref grid j i) #\#)
+                    (incf occupied))))
+    occupied))
+
+(defun adjacent-occupied-seats (grid y x)
+  (let ((dimensions (array-dimensions grid))
+        (occupied 0)
+        width height)
+    (setf height (first dimensions))
+    (setf width (second dimensions))
+
+    ;; TODO: good candidate for macro?
+    (if (and (> y 0) (> x 0))
+        (if (seat-occupied? (aref grid (1- y) (1- x)))
+            (incf occupied)))
+    (if (> y 0)
+        (if (seat-occupied? (aref grid (1- y) x))
+            (incf occupied)))
+    (if (and (> y 0) (< x (1- width)))
+        (if (seat-occupied? (aref grid (1- y) (1+ x)))
+            (incf occupied)))
+
+    (if (and (> x 0))
+        (if (seat-occupied? (aref grid y (1- x)))
+            (incf occupied)))
+    (if (and (< x (1- width)))
+        (if (seat-occupied? (aref grid y (1+ x)))
+            (incf occupied)))
+    
+    (if (and (< y (1- height)) (> x 0))
+        (if (seat-occupied? (aref grid (1+ y) (1- x)))
+            (incf occupied)))
+    (if (and (< y (1- height)))
+        (if (seat-occupied? (aref grid (1+ y) x))
+            (incf occupied)))
+    (if (and (< y (1- height)) (< x (1- width)))
+        (if (seat-occupied? (aref grid (1+ y) (1+ x)))
+            (incf occupied)))
+    
+    occupied))
+
+(defun visible-occupied-seat (grid y x dy dx)
+  (let ((height (first (array-dimensions grid)))
+        (width (second (array-dimensions grid))))
+    (loop while T do
+          (incf y dy)
+          (incf x dx)
+          (if (or (< y 0) (> y (1- height))
+                  (< x 0) (> x (1- width)))
+              (return)
+
+              (case (aref grid y x)
+                (#\# (return-from visible-occupied-seat (list y x)))
+                (#\L (return)))))
+    NIL))
+
+(defun visible-occupied-seats (grid y x)
+   (let ((occupied 0)
+        (directions '((-1 0)    ; up
+                      (-1 1)    ; up right
+                      (0 1)     ; right
+                      (1 1)     ; down right
+                      (1 0)     ; down
+                      (1 -1)    ; down left
+                      (0 -1)    ; left
+                      (-1 -1))))
+     (loop for (dy dx) in directions do
+           (let ((visible-seat (visible-occupied-seat grid y x dy dx)))
+             (if visible-seat
+                 (progn
+                   (incf occupied)))))
+     occupied))
+
+(defun step-automaton (grid)
+  ;; TODO: implement with Wolfram code as argument?
+  (let ((new-grid (alexandria:copy-array grid))
+        (height (first (array-dimensions grid)))
+        (width (second (array-dimensions grid)))
+        (changed? NIL))
+    (loop for j from 0 below height do
+          (loop for i from 0 below width do
+                (case (aref grid j i)
+                  (#\L
+                   (if (= (adjacent-occupied-seats grid j i) 0)
+                       (progn (setf (aref new-grid j i) #\#)
+                              (setf changed? T))))
+                  (#\#
+                   (if (>= (adjacent-occupied-seats grid j i) 4)
+                       (progn (setf (aref new-grid j i) #\L)
+                              (setf changed? T)))))))
+    (values new-grid changed?)))
+
+(defun step-automaton-visual (grid)
+  ;; TODO: implement with Wolfram code as argument?
+  (let ((new-grid (alexandria:copy-array grid))
+        (height (first (array-dimensions grid)))
+        (width (second (array-dimensions grid)))
+        (changed? NIL))
+
+    (loop for j from 0 below height do
+          (loop for i from 0 below width do
+                (case (aref grid j i)
+                  (#\L
+                   (if (= (visible-occupied-seats grid j i) 0)
+                       (progn (setf (aref new-grid j i) #\#)
+                              (setf changed? T))))
+                  (#\#
+                   (if (>= (visible-occupied-seats grid j i) 5)
+                       (progn (setf (aref new-grid j i) #\L)
+                              (setf changed? T)))))))
+    (values new-grid changed?)))
+
+(defun grids-equal? (a b)
+  " return true if 2D arrays A and B are equal in every position "
+  (loop for j from 0 below (first (array-dimensions a)) do
+        (loop for i from 0 below (second (array-dimensions a)) do
+              (unless (equal (aref a j i) (aref b j i))
+                (return-from grids-equal? NIL))))
+  T)
+
+(defun make-grid (input)
+  (let ((file (get-file input)))
+    (make-array (list (length file) (length (first file)))
+                :initial-contents file)))
+
+(defun day11a (input)
+  (let ((grid (make-grid input))
+        (grid-changed T))
+
+    (loop while grid-changed do
+          (setf (values grid grid-changed) (step-automaton grid)))
+
+    (count-occupied-seats grid)))
+
+(defun day11b (input)
+  (let ((grid (make-grid input))
+        (grid-changed T))
+
+    (loop while grid-changed do
+          (setf (values grid grid-changed) (step-automaton-visual grid)))
+
+    (count-occupied-seats grid)))
+
+(defun day11 ()
+  (format t "~D~%" (day11a "input11.txt"))
+  (format t "~D~%" (day11b "input11.txt")))
+
