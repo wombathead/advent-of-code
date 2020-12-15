@@ -3,6 +3,7 @@
 (ql:quickload :alexandria)
 
 (load "graph.lisp")
+(load "vec2.lisp")
 
 ;; ---------------------------- ;;
 ;;  UTILITY/GENERAL FUNCTIONS   ;;
@@ -13,6 +14,8 @@
     (loop for line = (read-line stream NIL)
           while line
           collect line)))
+
+(define-modify-macro mulf (x) *)
 
 (defun xor (a b)
   (and
@@ -552,6 +555,10 @@
     (setf G (make-joltage-graph joltages))
     (graph:count-paths G 0 max-adapter)))
 
+(defun day10 ()
+  (format T "~D~%" (day10a "input10.txt"))
+  (format T "~D~%" (day10b "input10.txt")))
+
 ;; ---------------------------- ;;
 ;;   DAY 11 - SEATING SYSTEM    ;;
 ;; ---------------------------- ;;
@@ -578,24 +585,24 @@
     (setf width (second dimensions))
 
     ;; TODO: good candidate for macro?
-    (if (and (> y 0) (> x 0))
+    (if (and (plusp y) (plusp x))
         (if (seat-occupied? (aref grid (1- y) (1- x)))
             (incf occupied)))
-    (if (> y 0)
+    (if (plusp y)
         (if (seat-occupied? (aref grid (1- y) x))
             (incf occupied)))
-    (if (and (> y 0) (< x (1- width)))
+    (if (and (plusp y) (< x (1- width)))
         (if (seat-occupied? (aref grid (1- y) (1+ x)))
             (incf occupied)))
 
-    (if (and (> x 0))
+    (if (plusp x)
         (if (seat-occupied? (aref grid y (1- x)))
             (incf occupied)))
-    (if (and (< x (1- width)))
+    (if (< x (1- width))
         (if (seat-occupied? (aref grid y (1+ x)))
             (incf occupied)))
     
-    (if (and (< y (1- height)) (> x 0))
+    (if (and (< y (1- height)) (plusp x))
         (if (seat-occupied? (aref grid (1+ y) (1- x)))
             (incf occupied)))
     (if (and (< y (1- height)))
@@ -613,8 +620,8 @@
     (loop while T do
           (incf y dy)
           (incf x dx)
-          (if (or (< y 0) (> y (1- height))
-                  (< x 0) (> x (1- width)))
+          (if (or (minusp y) (> y (1- height))
+                  (minusp x) (> x (1- width)))
               (return)
 
               (case (aref grid y x)
@@ -713,3 +720,122 @@
   (format t "~D~%" (day11a "input11.txt"))
   (format t "~D~%" (day11b "input11.txt")))
 
+;; ---------------------------- ;;
+;;      DAY 12 - RAIN RISK      ;;
+;; ---------------------------- ;;
+
+(defun get-instructions (file)
+  (let ((input (get-file file)))
+    (mapcar #'(lambda (l)
+                (list (read-from-string (subseq l 0 1))
+                      (read-from-string (subseq l 1))))
+            input)))
+
+(defstruct ship
+  (pos (vec2:make-vec2) :type vec2:vec2)
+  (view (vec2:make-vec2 :x 1 :y 0) :type vec2:vec2))
+
+(defmacro ship-pos-x (ship) `(vec2:vec2-x (ship-pos ,ship)))
+(defmacro ship-pos-y (ship) `(vec2:vec2-y (ship-pos ,ship)))
+(defmacro ship-view-x (ship) `(vec2:vec2-x (ship-view ,ship)))
+(defmacro ship-view-y (ship) `(vec2:vec2-y (ship-view ,ship)))
+
+(defun move-ship (ship instruction)
+  (let ((dir (first instruction))
+        (dst (second instruction))
+        ;; TODO: perform deep copy here
+        (s (copy-ship ship)))
+    (case dir
+      (N (incf (ship-pos-y s) dst))
+      (S (decf (ship-pos-y s) dst))
+      (E (incf (ship-pos-x s) dst))
+      (W (decf (ship-pos-x s) dst))
+
+      (F (incf (ship-pos-x s)
+               (* dst (ship-view-x s)))
+         (incf (ship-pos-y s)
+               (* dst (ship-view-y s))))
+
+      (L (setf (ship-view s)
+               (case dst
+                 (90 (vec2:rotate-90 (ship-view s)))
+                 (180 (vec2:rotate-90 (vec2:rotate-90 (ship-view s))))
+                 (270 (vec2:rotate-270 (ship-view s)))
+                 (t (ship-view s)))))
+
+      ;; TODO: handle more elegantly (but still accurately)
+      (R (setf (ship-view s)
+               (case dst
+                 (90 (vec2:rotate-270 (ship-view s)))
+                 (180 (vec2:rotate-90 (vec2:rotate-90 (ship-view s))))
+                 (270 (vec2:rotate-90 (ship-view s)))
+                 (t (ship-view s))))))
+    s))
+
+(defun move-waypoint (s w instruction)
+  (let ((dir (first instruction))
+        (dst (second instruction)))
+    (case dir
+      (N (incf (vec2:vec2-y w) dst))
+      (S (decf (vec2:vec2-y w) dst))
+      (E (incf (vec2:vec2-x w) dst))
+      (W (decf (vec2:vec2-x w) dst))
+
+      (F 
+        (let ((diff (vec2:sub w s)))
+          (setf s (vec2:add s (vec2:mult dst diff)))
+          (setf w (vec2:add s diff))))
+
+      (L
+        (setf w
+              (case dst
+                (90 (vec2:rotate-90-about w s))
+                (180 (vec2:rotate-90-about (vec2:rotate-90-about w s)
+                                           s))
+                (270 (vec2:rotate-270-about w s)))))
+      (R
+        (setf w
+              (case dst
+                (90 (vec2:rotate-270-about w s))
+                (180 (vec2:rotate-90-about (vec2:rotate-90-about w s)
+                                           s))
+                (270 (vec2:rotate-90-about w s))))))
+    (values s w)))
+
+(defun day12a (input)
+  (let ((instructions (get-instructions input))
+        (ship (make-ship)))
+    (loop for instr in instructions do
+          (setf ship (move-ship ship instr)))
+
+    ;; return the Manhattan distance of the ship from the origin
+    (vec2:l1 (ship-pos ship) (vec2:make-vec2 :x 0 :y 0))))
+
+(defun day12b (input)
+  (let ((instructions (get-instructions input))
+        (ship (vec2:make-vec2 :x 0 :y 0))
+        (waypoint (vec2:make-vec2 :x 10 :y 1))
+        (origin (vec2:make-vec2)))
+    (loop for instr in instructions do
+          (setf (values ship waypoint)
+                (move-waypoint ship waypoint instr)))
+    (vec2:l1 ship origin)))
+
+(defun day12 ()
+  (format t "~D~%" (day12a "input12.txt"))
+  (format t "~D~%" (day12b "input12.txt")))
+
+(defun main ()
+  (let ((start (get-internal-run-time))
+        end)
+    (day1) (day2) (day3) (day4) (day5) (day6) 
+    (day7) (day8) (day9) (day10) (day11)
+
+    ;; rest of the days...
+
+    (setf end (get-internal-run-time))
+    (format T "Total time: ~F~%" (/ (- end start ) 1000))))
+
+;(sb-ext:save-lisp-and-die "aoc"
+;                          :executable t
+;                          :toplevel 'main)
