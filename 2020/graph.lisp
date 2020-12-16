@@ -113,6 +113,8 @@
     (loop while (not (equal w u)) do
           ; go to the next node in the ordering 
           (setf w (pop topo))
+
+          ;; count number of paths for every neigbour of w in G
           (let ((neighbour-paths (mapcar #'(lambda (n)
                                              (gethash n paths))
                                          (gethash w G))))

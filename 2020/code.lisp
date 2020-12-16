@@ -1,6 +1,7 @@
 (ql:quickload :str)
 (ql:quickload :cl-ppcre)
 (ql:quickload :alexandria)
+(ql:quickload :parse-number)
 
 (load "graph.lisp")
 (load "vec2.lisp")
@@ -86,8 +87,8 @@
                           (if (= 2020 (+ a b c))
                               (return-from day1b (* a b c)))))))))
 
-  (format T "~A~%" (day1a "input1.txt"))
-  (format T "~A~%" (day1b "input1.txt")))
+  (format t "~A~%" (day1a "input1.txt"))
+  (format t "~A~%" (day1b "input1.txt")))
 
 ;; ---------------------------- ;;
 ;; DAY 2 - PASSWORD PHILOSOPHY  ;;
@@ -125,8 +126,8 @@
     (let ((passwords (get-passwords input)))
       (count T (mapcar #'(lambda (r) (apply #'valid-position r)) passwords))))
 
-  (format T "~A~%" (day2a "input2.txt"))
-  (format T "~A~%" (day2b "input2.txt")))
+  (format t "~A~%" (day2a "input2.txt"))
+  (format t "~A~%" (day2b "input2.txt")))
 
 ;; ---------------------------- ;;
 ;; DAY 3 - TOBOGGAN TRAJECTORY  ;;
@@ -163,8 +164,8 @@
       (apply #'* (loop for (dx dy) in '((1 1) (3 1) (5 1) (7 1) (1 2))
                        collect (traverse terrain dx dy)))))
 
-  (format T "~A~%" (day3a "input3.txt"))
-  (format T "~A~%" (day3b "input3.txt")))
+  (format t "~A~%" (day3a "input3.txt"))
+  (format t "~A~%" (day3b "input3.txt")))
 
 ;; ---------------------------- ;;
 ;; DAY 4 - PASSPORT PROCESSING  ;;
@@ -260,8 +261,8 @@
                            passports)))))
 
 (defun day4 ()
-  (format T "~A~%" (day4a "input4.txt"))
-  (format T "~A~%" (day4b "input4.txt")))
+  (format t "~A~%" (day4a "input4.txt"))
+  (format t "~A~%" (day4b "input4.txt")))
 
 ;; ---------------------------- ;;
 ;;   DAY 5 - BINARY BOARDING    ;;
@@ -298,8 +299,8 @@
             (if (= (- b a) 2)
                 (return-from day5b (1+ a))))))
 
-  (format T "~A~%" (day5a "input5.txt"))
-  (format T "~A~%" (day5b "input5.txt")))
+  (format t "~A~%" (day5a "input5.txt"))
+  (format t "~A~%" (day5b "input5.txt")))
 
 ;; ---------------------------- ;;
 ;;    DAY 6 - CUSTOM CUSTOMS    ;;
@@ -344,8 +345,8 @@
                          sum))
                    answers))))
 
-  (format T "~A~%" (day6a "input6.txt"))
-  (format T "~A~%" (day6b "input6.txt")))
+  (format t "~A~%" (day6a "input6.txt"))
+  (format t "~A~%" (day6b "input6.txt")))
 
 ;; ---------------------------- ;;
 ;;   DAY 7 - HANDY HAVERSACKS   ;;
@@ -412,8 +413,8 @@
           (target-bag "shiny gold"))
       (contains target-bag G)))
 
-  (format T "~D~%" (day7a "input7.txt"))
-  (format T "~D~%" (day7b "input7.txt")))
+  (format t "~D~%" (day7a "input7.txt"))
+  (format t "~D~%" (day7b "input7.txt")))
 
 ;; ---------------------------- ;;
 ;;   DAY 8 - HANDHELD HALTING   ;;
@@ -477,8 +478,8 @@
     (let ((program (load-program input)))
       (determine-corruption program)))
 
-  (format T "~D~%" (day8a "input8.txt"))
-  (format T "~D~%" (day8b "input8.txt")))
+  (format t "~D~%" (day8a "input8.txt"))
+  (format t "~D~%" (day8b "input8.txt")))
 
 ;; ---------------------------- ;;
 ;;    DAY 9 - ENCODING ERROR    ;;
@@ -512,8 +513,8 @@
             (sort (contiguous-sum nums (find-invalid nums window-size)) #'<))
       (+ (first contiguous) (first (last contiguous)))))
 
-  (format T "~D~%" (day9a "input9.txt"))
-  (format T "~D~%" (day9b "input9.txt")))
+  (format t "~D~%" (day9a "input9.txt"))
+  (format t "~D~%" (day9b "input9.txt")))
 
 ;; ---------------------------- ;;
 ;;    DAY 10 - ADAPTER ARRAY    ;;
@@ -556,8 +557,8 @@
     (graph:count-paths G 0 max-adapter)))
 
 (defun day10 ()
-  (format T "~D~%" (day10a "input10.txt"))
-  (format T "~D~%" (day10b "input10.txt")))
+  (format t "~D~%" (day10a "input10.txt"))
+  (format t "~D~%" (day10b "input10.txt")))
 
 ;; ---------------------------- ;;
 ;;   DAY 11 - SEATING SYSTEM    ;;
@@ -834,7 +835,103 @@
     ;; rest of the days...
 
     (setf end (get-internal-run-time))
-    (format T "Total time: ~F~%" (/ (- end start ) 1000))))
+    (format t "Total time: ~F~%" (/ (- end start ) 1000))))
+
+;; ---------------------------- ;;
+;;   DAY 13: SHUTTLE SEARCH     ;;
+;; ---------------------------- ;;
+
+(defun get-buses (file)
+  (let ((input (get-file file))
+        earliest-time
+        buses)
+    (setf earliest-time (parse-integer (first input)))
+    (setf buses (str:split "," (second input)))
+    (list earliest-time
+          buses)))
+
+(defun earliest-arrival (minimum bus)
+  (let (q r)
+    (setf (values q r) (floor minimum bus))
+    (+ minimum (- bus r))))
+
+(defun day13a (file)
+  (let ((input (get-buses file))
+        minimum
+        buses
+        earliest-time
+        earliest-bus)
+    (setf minimum (first input))
+    (setf buses (mapcar #'parse-integer
+                        (remove-if #'(lambda (b)
+                                           (equal b "x"))
+                                       (second input))))
+    (setf earliest-time
+          (apply #'min (mapcar #'(lambda (b)
+                                   (earliest-arrival minimum b))
+                               buses)))
+    (loop for bus in buses do
+          (if (= (mod earliest-time bus) 0)
+              (setf earliest-bus bus)))
+    (* earliest-bus (- earliest-time minimum))))
+
+(defun gcd++ (a b)
+  " return the x and y such that ax + by = gcd(a,b) using the Extended Euclidean Algorithm "
+  (let ((r- a) (r b)
+        (s- 1) (s 0)
+        (u- 0) (u 1)
+        q)
+    
+    (loop while (/= r 0) do
+          (setf q (floor r- r))
+          (setf (values r- r) (values r (- r- (* q r))))
+          (setf (values s- s) (values s (- s- (* q s))))
+          (setf (values u- u) (values u (- u- (* q u)))))
+
+    (values s- u-)))
+
+(defun crt (congruences)
+  " given x = a1 (mod n1) = a2 (mod n2) ... supplied in the list ((a1 n1) ...) CONGRUENCES, compute x using the Chinese Remainder Theorem "
+  (loop while (> (length congruences) 1) do
+        (let ((d1 (pop congruences))
+              (d2 (pop congruences))
+              a1 m1 n1
+              a2 m2 n2)
+
+          (setf a1 (first d1))
+          (setf n1 (second d1))
+          (setf a2 (first d2))
+          (setf n2 (second d2))
+
+          (setf (values m1 m2) (gcd++ n1 n2))
+
+          (let ((a3 (+ (* a1 m2 n2) (* a2 m1 n1)))
+                (n3 (* n1 n2))
+                k)
+
+            (when (minusp a3)
+                (setf k (ceiling (- a3) n3))
+                (incf a3 (* k n3)))
+            
+            (push (list a3 n3) congruences))))
+
+  (values (caar congruences) (cadar congruences)))
+
+(defun day13b (file)
+  (let ((input (str:split "," (second (get-file file))))
+        congruences a n)
+    (setf input (mapcar #'read-from-string
+                        input))
+
+    (setf congruences (loop for n in input and a from 0
+                            unless (eql n 'X)
+                            collect (list (- n a) n)))
+    (setf (values a n) (crt congruences))
+    (mod a n)))
+
+(defun day13 ()
+  (format t "~D~%" (day13a "input13.txt"))
+  (format t "~D~%" (day13b "input13.txt")))
 
 ;(sb-ext:save-lisp-and-die "aoc"
 ;                          :executable t
