@@ -143,8 +143,9 @@
     (let ((collisions 0)
           (i 0) (j 0)
           width height)
-      (setf height (array-dimension terrain 0))
-      (setf width (array-dimension terrain 1))
+      (setf 
+        height (array-dimension terrain 0)
+        width (array-dimension terrain 1))
       (loop while (< j height) do
             (if (>= i width)
                 (setf i (mod i width)))
@@ -193,8 +194,8 @@
   (let ((n (length height))
         value units)
     (unless (< (length height) 3)
-      (setf units (subseq height (- n 2)))
-      (setf value (parse-integer (subseq height 0 (- n 2))))
+      (setf units (subseq height (- n 2))
+            value (parse-integer (subseq height 0 (- n 2))))
       (cond ((equal units "cm")
              (within-range value 150 193))
             ((equal units "in")
@@ -315,8 +316,8 @@
       (loop for line in file do
             (if (equal line "")
                 (progn (push (list group-size group-str) answers)
-                       (setf group-size 0)
-                       (setf group-str ""))
+                       (setf group-size 0
+                             group-str ""))
                 (progn (incf group-size)
                        (setf group-str
                              (concatenate 'string group-str line)))))
@@ -442,8 +443,9 @@
             (let ((instr (nth ip program))
                   (is-dirty (aref dirty ip))
                   op arg)
-              (setf op (instr-op instr))
-              (setf arg (instr-arg instr))
+
+              (setf op (instr-op instr)
+                    arg (instr-arg instr))
 
               (if is-dirty
                   (return-from execute-program (values acc 'LOOP))
@@ -582,8 +584,9 @@
   (let ((dimensions (array-dimensions grid))
         (occupied 0)
         width height)
-    (setf height (first dimensions))
-    (setf width (second dimensions))
+
+    (setf height (first dimensions)
+          width (second dimensions))
 
     ;; TODO: good candidate for macro?
     (if (and (plusp y) (plusp x))
@@ -658,12 +661,12 @@
                 (case (aref grid j i)
                   (#\L
                    (if (= (adjacent-occupied-seats grid j i) 0)
-                       (progn (setf (aref new-grid j i) #\#)
-                              (setf changed? T))))
+                       (setf (aref new-grid j i) #\#
+                             changed? T)))
                   (#\#
                    (if (>= (adjacent-occupied-seats grid j i) 4)
-                       (progn (setf (aref new-grid j i) #\L)
-                              (setf changed? T)))))))
+                       (setf (aref new-grid j i) #\L
+                             changed? T))))))
     (values new-grid changed?)))
 
 (defun step-automaton-visual (grid)
@@ -678,12 +681,12 @@
                 (case (aref grid j i)
                   (#\L
                    (if (= (visible-occupied-seats grid j i) 0)
-                       (progn (setf (aref new-grid j i) #\#)
-                              (setf changed? T))))
+                       (setf (aref new-grid j i) #\#
+                             changed? T)))
                   (#\#
                    (if (>= (visible-occupied-seats grid j i) 5)
-                       (progn (setf (aref new-grid j i) #\L)
-                              (setf changed? T)))))))
+                       (setf (aref new-grid j i) #\L
+                             changed? T))))))
     (values new-grid changed?)))
 
 (defun grids-equal? (a b)
@@ -784,8 +787,8 @@
 
       (F 
         (let ((diff (vec2:sub w s)))
-          (setf s (vec2:add s (vec2:mult dst diff)))
-          (setf w (vec2:add s diff))))
+          (setf s (vec2:add s (vec2:mult dst diff))
+                w (vec2:add s diff))))
 
       (L
         (setf w
@@ -818,8 +821,7 @@
         (waypoint (vec2:make-vec2 :x 10 :y 1))
         (origin (vec2:make-vec2)))
     (loop for instr in instructions do
-          (setf (values ship waypoint)
-                (move-waypoint ship waypoint instr)))
+          (setf (values ship waypoint) (move-waypoint ship waypoint instr)))
     (vec2:l1 ship origin)))
 
 (defun day12 ()
@@ -845,10 +847,11 @@
   (let ((input (get-file file))
         earliest-time
         buses)
-    (setf earliest-time (parse-integer (first input)))
-    (setf buses (str:split "," (second input)))
-    (list earliest-time
-          buses)))
+
+    (setf earliest-time (parse-integer (first input))
+          buses (str:split "," (second input)))
+
+    (list earliest-time buses)))
 
 (defun earliest-arrival (minimum bus)
   (let (q r)
@@ -861,15 +864,15 @@
         buses
         earliest-time
         earliest-bus)
-    (setf minimum (first input))
-    (setf buses (mapcar #'parse-integer
+
+    (setf minimum (first input)
+          buses (mapcar #'parse-integer
                         (remove-if #'(lambda (b)
-                                           (equal b "x"))
-                                       (second input))))
-    (setf earliest-time
-          (apply #'min (mapcar #'(lambda (b)
-                                   (earliest-arrival minimum b))
-                               buses)))
+                                       (equal b "x"))
+                                   (second input)))
+          earliest-time (apply #'min (mapcar #'(lambda (b)
+                                                 (earliest-arrival minimum b))
+                                             buses)))
     (loop for bus in buses do
           (if (= (mod earliest-time bus) 0)
               (setf earliest-bus bus)))
@@ -883,10 +886,10 @@
         q)
     
     (loop while (/= r 0) do
-          (setf q (floor r- r))
-          (setf (values r- r) (values r (- r- (* q r))))
-          (setf (values s- s) (values s (- s- (* q s))))
-          (setf (values u- u) (values u (- u- (* q u)))))
+          (setf q (floor r- r)
+                (values r- r) (values r (- r- (* q r)))
+                (values s- s) (values s (- s- (* q s)))  
+                (values u- u) (values u (- u- (* q u)))))
 
     (values s- u-)))
 
@@ -898,10 +901,10 @@
               a1 m1 n1
               a2 m2 n2)
 
-          (setf a1 (first d1))
-          (setf n1 (second d1))
-          (setf a2 (first d2))
-          (setf n2 (second d2))
+          (setf a1 (first d1)
+                n1 (second d1)  
+                a2 (first d2)  
+                n2 (second d2))
 
           (setf (values m1 m2) (gcd++ n1 n2))
 
@@ -933,6 +936,127 @@
   (format t "~D~%" (day13a "input13.txt"))
   (format t "~D~%" (day13b "input13.txt")))
 
+;; ---------------------------- ;;
+;;     DAY 14: DOCKING DATA     ;;
+;; ---------------------------- ;;
+
+(defstruct mask-write
+  mask
+  writes)
+
+(defun empty-string (str)
+  (equal str ""))
+
+(defun starts-with (regex target-str)
+  (let ((idx (cl-ppcre:all-matches regex target-str)))
+    (unless (null idx)
+      (zerop (first idx)))))
+
+(defun masked-value (mask num)
+  ;; OR mask: marks positions we want a 1
+  ;; AND mask: marks positions we want a 0
+  (let ((or-mask (parse-integer (cl-ppcre:regex-replace-all "X" mask "0")
+                                :radix 2))
+        (and-mask (parse-integer (cl-ppcre:regex-replace-all "X" mask "1")
+                                 :radix 2)))
+    (logand (logior num or-mask) and-mask)))
+
+(defun get-writes (file)
+  " return list ((mask ((address value) ...)) ... ) of memory writes "
+  (let ((input (get-file file))
+        instructions
+        (curr (make-mask-write)))
+    (loop for line in input do
+          (if (empty-string line)
+              (progn 
+                (setf (mask-write-writes curr) (reverse (mask-write-writes curr)))
+                (push curr instructions)
+                (setf curr (make-mask-write))
+                (return)))
+
+          (if (starts-with "mask" line)
+              ;; push the previous sequence of writes
+              (progn 
+                (setf (mask-write-writes curr) (reverse (mask-write-writes curr)))
+                (push curr instructions)
+                (setf curr (make-mask-write)
+                      (mask-write-mask curr) (third (str:words line))))
+
+              ;; add the write to the current sequence
+              (let ((value (parse-integer
+                             (third (str:words line))))
+                    (idx (cl-ppcre:all-matches "\[[0-9]+\]" line))
+                    lo hi address)
+
+                (setf lo (1+ (first idx))
+                      hi (1- (second idx))
+                      address (parse-integer (subseq line lo hi)))
+
+                (push (list address value) (mask-write-writes curr)))))
+    (setf instructions (reverse instructions))))
+
+(defun floating-masked-value (mask num)
+  (let ((num-str (format nil "~36,'0B" num))
+        result)
+    (setf result (copy-seq num-str))
+    (loop for bit across mask and i from 0 do
+          (setf (char result i) (case bit
+                                  (#\0 (char num-str i))
+                                  (otherwise bit)))
+          finally (return result))))
+
+(defun generate-combinations (str)
+  (let ((n (length str))
+        (possible (if (char= (char str 0) #\X)
+                      (list "0" "1")
+                      (list (subseq str 0 1)))))
+    (if (= n 1)
+        (return-from generate-combinations possible)
+
+        (alexandria:map-product
+          #'(lambda (x y)
+              (concatenate 'string x y))
+          possible
+          (generate-combinations (subseq str 1))))))
+
+(defun day14a (file)
+  (let ((writes (get-writes file))
+        (memory (make-hash-table)))
+    (loop for w in writes do
+          (let ((mask (mask-write-mask w)))
+            (loop for mem-write in (mask-write-writes w) do
+                  (setf (gethash (first mem-write) memory)
+                        (masked-value mask (second mem-write))))))
+    (let ((sum 0))
+      (maphash #'(lambda (k v)
+                   (incf sum v))
+               memory)
+      sum)))
+
+(defun day14b (file)
+  (let ((writes (get-writes file))
+        (memory (make-hash-table)))
+    
+    (loop for w in writes do
+          (let ((mask (mask-write-mask w)))
+            (loop for mem-write in (mask-write-writes w) do
+                  (let ((address (first mem-write))
+                        (value (second mem-write))
+                        locations)
+                    (setf locations (generate-combinations
+                                      (floating-masked-value mask address)))
+                    (loop for location in (mapcar #'(lambda (x)
+                                                      (parse-integer x :radix 2))
+                                                  locations) do
+                          (setf (gethash location memory) value))))))
+    
+    (let ((sum 0))
+      (maphash #'(lambda (k v)
+                   (incf sum v))
+               memory)
+      sum)))
+
 ;(sb-ext:save-lisp-and-die "aoc"
 ;                          :executable t
 ;                          :toplevel 'main)
+
