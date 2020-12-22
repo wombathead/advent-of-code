@@ -1060,3 +1060,44 @@
 ;                          :executable t
 ;                          :toplevel 'main)
 
+;; --------------------------------- ;;
+;;  DAY 15: RAMBUNCTIOUS RECITATION  ;;
+;; --------------------------------- ;;
+
+(defun elf-game (starting-numbers max-round)
+  (let ((utterances (make-hash-table))
+        (last-seen (make-hash-table))
+        say
+        prev)
+    (loop for n in starting-numbers and i from 1 do
+          (setf (gethash n utterances) 1
+                (gethash n last-seen) (list i)
+                prev n))
+    
+    (loop for i from (1+ (length starting-numbers)) to max-round do
+          (setf say (if (= 1 (gethash prev utterances))
+                        0
+                        (- (first (gethash prev last-seen))
+                           (second (gethash prev last-seen)))))
+
+          (if (gethash say utterances)
+              (progn
+                (incf (gethash say utterances))
+                (setf (gethash say last-seen) (list i (first (gethash say last-seen)))))
+
+              (progn
+                (setf (gethash say utterances) 1
+                      (gethash say last-seen) (list i))))
+
+          (setf prev say))
+    prev))
+
+(defun day15a (file)
+  (let ((input (mapcar #'parse-integer
+                       (str:split "," (first (get-file file))))))
+    (elf-game input 2020)))
+
+(defun day15b (file)
+  (let ((input (mapcar #'parse-integer
+                       (str:split "," (first (get-file file))))))
+    (elf-game input 30000000)))
