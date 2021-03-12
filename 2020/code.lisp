@@ -1,3 +1,4 @@
+
 (ql:quickload :str)
 (ql:quickload :cl-ppcre)
 (ql:quickload :alexandria)
@@ -18,7 +19,7 @@
 
 (define-modify-macro mulf (x) *)
 
-(defun xor (a b)
+(defun my-xor (a b)
   (and
     (or a b)
     (not (and a b))))
@@ -26,6 +27,14 @@
 (defun within-range (num lower upper)
   " return T if NUM is between LOWER and UPPER "
   (and (>= num lower) (<= num upper)))
+
+(defun within-all-ranges (num ranges)
+  (not (member NIL (mapcar #'(lambda (r) (within-range num (first r) (second r)))
+                           ranges))))
+
+(defun within-some-range (num ranges)
+  (member t (mapcar #'(lambda (r) (within-range num (first r) (second r)))
+                    ranges)))
 
 (defun binary-to-dec (bin-str zero-char lo hi)
   " convert binary string BIN-STR with ZERO-CHAR representing 0 to decimal value "
@@ -115,8 +124,8 @@
 
   (defun valid-position (x y ch password)
     " return T if CH appears at position X xor position Y in PASSWORD "
-    (xor (equal ch (char password (1- x)))
-         (equal ch (char password (1- y)))))
+    (alexandria:xor (equal ch (char password (1- x)))
+                    (equal ch (char password (1- y)))))
 
   (defun day2a (input)
     (let ((passwords (get-passwords input)))
@@ -828,17 +837,6 @@
   (format t "~D~%" (day12a "input12.txt"))
   (format t "~D~%" (day12b "input12.txt")))
 
-(defun main ()
-  (let ((start (get-internal-run-time))
-        end)
-    (day1) (day2) (day3) (day4) (day5) (day6) 
-    (day7) (day8) (day9) (day10) (day11)
-
-    ;; rest of the days...
-
-    (setf end (get-internal-run-time))
-    (format t "Total time: ~F~%" (/ (- end start ) 1000))))
-
 ;; ---------------------------- ;;
 ;;   DAY 13: SHUTTLE SEARCH     ;;
 ;; ---------------------------- ;;
@@ -1029,6 +1027,7 @@
                         (masked-value mask (second mem-write))))))
     (let ((sum 0))
       (maphash #'(lambda (k v)
+                   (declare (ignore k))
                    (incf sum v))
                memory)
       sum)))
@@ -1052,19 +1051,22 @@
     
     (let ((sum 0))
       (maphash #'(lambda (k v)
+                   (declare (ignore k))
                    (incf sum v))
                memory)
       sum)))
 
-;(sb-ext:save-lisp-and-die "aoc"
-;                          :executable t
-;                          :toplevel 'main)
+(defun day14 ()
+  (format t "~D~%" (day14a "input14.txt"))
+  (format t "~D~%" (day14b "input14.txt")))
 
 ;; --------------------------------- ;;
 ;;  DAY 15: RAMBUNCTIOUS RECITATION  ;;
 ;; --------------------------------- ;;
 
 (defun elf-game (starting-numbers max-round)
+  " run the elf game up to round MAX-ROUND with STARTING-NUMBERS as input, and return the final spoken number "
+  ;; TODO: compare speed with array implementation?
   (let ((utterances (make-hash-table))
         (last-seen (make-hash-table))
         say
@@ -1101,3 +1103,351 @@
   (let ((input (mapcar #'parse-integer
                        (str:split "," (first (get-file file))))))
     (elf-game input 30000000)))
+
+(defun day15 ()
+  (format t "~D~%" (day15a "input15.txt"))
+  (format t "~D~%" (day15b "input15.txt")))
+
+;; -------------------------------- ;;
+;;    DAY 16: TICKET TRANSLATION    ;;
+;; -------------------------------- ;;
+
+(defun parse-input (file)
+  " returns three values: 1) list ((field ((lo1 hi1) (lo2 hi2) ...)) ...) of fields and ranges; 2) list (n1 n2 ...) of values on my ticket; 3) list ((n11 n12 ...) (n21 n22 ...) ...) of nearby ticket values "
+  (let ((input (get-file file))
+        fields
+        my-ticket
+        nearby-tickets)
+
+    ;; loop to gather fields and ranges
+    (loop for line in input and i from 0 do
+          (setf input (rest input))
+
+          (if (string= line "")
+              (return))
+
+          (let ((field-name (first (str:split ":" line)))
+                (ranges (mapcar #'parse-integer
+                                (cl-ppcre:all-matches-as-strings "\\d+" line))))
+            (push (list field-name
+                        (loop :for (a b) :on ranges :by #'cddr :while b
+                              :collect (list a b)))
+                  fields)))
+
+    ;; loop to gather my ticket information
+    (loop for line in input do
+          (setf input (rest input))
+          (unless (starts-with "your" line)
+            (if (string= "" line)
+                (return)
+                (setf my-ticket (mapcar #'parse-integer
+                                        (str:split "," line))))))
+
+    ;; loop to gather nearby ticket information
+    (loop for line in input do
+          (unless (starts-with "nearby" line)
+            (push (mapcar #'parse-integer (str:split "," line))
+                  nearby-tickets)))
+
+    (values fields my-ticket nearby-tickets)))
+
+(defun invalid-ticket-values (field-ranges ticket)
+  (let ((ranges (alexandria:flatten (mapcar #'cadr field-ranges)))
+        invalid-values)
+
+    (loop for value in ticket do
+          (let ((never-valid t))
+            (loop :for (a b) :on ranges :by #'cddr :while b do
+                  (when (within-range value a b)
+                    (setf never-valid nil)
+                    (return)))
+
+            (if never-valid
+                (push value invalid-values))))
+    invalid-values))
+
+(defun day16a (file)
+  (let (field-ranges my-ticket nearby-tickets)
+    (setf (values field-ranges my-ticket nearby-tickets)
+          (parse-input file))
+
+    ;; this seems to perform slightly better than summing as you go
+    (reduce #'+ (alexandria:flatten
+                  (mapcar #'(lambda (tkt) (invalid-ticket-values field-ranges tkt))
+                          nearby-tickets)))))
+
+(defun make-matching-graph (field-ranges valid-tickets)
+  (let ((n (length field-ranges))
+        (G (make-hash-table))
+
+        ;; specifies one list of ranges per field
+        (ranges (mapcar #'second field-ranges)))
+
+    (loop for i from 0 below n do
+          ;; get all first, second, ..., i-th values on nearby tickets
+          (let ((ith-values (mapcar #'(lambda (tkt) (elt tkt i))
+                                    valid-tickets)))
+
+            (loop for range-list in ranges and j from n do
+
+                  ;; add edge when all ith values are in some range for this field
+                  (when (not (member NIL (mapcar #'(lambda (v) (within-some-range v range-list))
+                                                 ith-values)))
+
+                    ;; e = (node capacity flow)
+                    (push (list j 1 0) (gethash i G))))))
+    
+    (loop for i from 0 below n do
+          ;; add edge from source to all left hand nodes
+          (push (list i 1 0) (gethash 'source G)) 
+          ;; add edge from all right hand nodes to sink
+          (push (list 'sink 1 0) (gethash (+ i n) G)))
+    
+    G))
+
+(defun print-graph (G)
+  (maphash #'(lambda (k v) (format t "~A: ~A~%" k v)) G))
+
+(defun copy-graph (G)
+  (let ((H (make-hash-table)))
+    (maphash #'(lambda (k v)
+                 (setf (gethash k H) (copy-list v)))
+             G)
+    H))
+
+(defun augmenting-path (G source sink)
+  (let ((pred (make-hash-table))
+        q)
+
+    (push source q)
+
+    ;; find the augmenting path
+    (loop while q do
+          (let ((u (pop q)))
+            (loop for e in (gethash u G) do
+                  (let ((v (first e))
+                        (cap (second e))
+                        (flow (third e)))
+
+                    (when (and (not (gethash v pred))
+                               (> cap flow))
+                      (setf (gethash v pred) (list u e))
+                      (push v q))))))
+
+    ;; return path if there is path from source to sink
+    (if (gethash sink pred)
+        pred)))
+
+(defun augment-flow (G augmenting-path source sink)
+  (let ((v sink)
+        (H (copy-graph G))
+        df)
+
+    ;; compute maximum amount by which to increase flow
+    (loop while (gethash v augmenting-path) do
+          (let ((parent (first (gethash v augmenting-path)))
+                (cap (second (second (gethash v augmenting-path))))
+                (flow (third (second (gethash v augmenting-path)))))
+
+            (setf df (if df
+                         (min df (- cap flow))
+                         (- cap flow)))
+
+            (setf v parent)
+            (if (eql parent source)
+                (return))))
+
+    ;; now send flow along the edges
+    (setf v sink)
+    (loop while (gethash v augmenting-path) do
+          (let ((incident-edges
+                  (gethash (first (gethash v augmenting-path)) H)))
+
+            ;; find the edge which was taken
+            (loop for e in incident-edges do
+                  (when (eql (first e) v)
+                    (incf (third e) df))))
+
+          ;; move to parent node
+          (setf v (first (gethash v augmenting-path))))
+    H))
+
+(defun edmonds-karp (G source sink)
+  (let (H)
+    
+    (loop while (augmenting-path H source sink) do
+          (let ((path (augmenting-path H source sink)))
+            (setf H (augment-flow H path source sink))))
+    H))
+
+(defun matching-to-fields (M field-ranges)
+  (let ((n (length field-ranges))
+        (field-names (mapcar #'first field-ranges))
+        (H (copy-graph M))
+        fields)
+
+    (loop for i from 0 below n do
+          (loop for e in (gethash i M) do
+                (if (= (third e) 1)
+                    (setf (gethash i H) (first e)))))
+
+    (loop for i from 0 below n do
+          (format t "~D: ~A~%" i (gethash i H))
+          (let ((field-index (mod (gethash i H) n)))
+            (push (list i (nth field-index field-names)) fields)))
+
+    (reverse fields)))
+
+(defun day16b (file)
+  (let (field-ranges
+        my-ticket
+        nearby-tickets
+        valid-tickets
+        n
+        possible-fields
+        ticket-values
+        matching)
+
+    (setf (values field-ranges my-ticket nearby-tickets)
+          (parse-input file))
+    
+    (setf valid-tickets
+          (remove-if #'(lambda (tkt) (invalid-ticket-values field-ranges tkt))
+                     nearby-tickets))
+    
+    (setf possible-fields (make-array (list (length my-ticket))
+                                      :initial-element nil))
+    
+    (setf n (length my-ticket))
+
+    ;; ticket-values[0] = all ticket values at position 0 (i.e. appearing first)
+    (setf ticket-values (loop for i from 0 below n
+                             collect (mapcar #'(lambda (tkt) (nth i tkt))
+                                             valid-tickets)))
+    
+    (loop for position in ticket-values and i from 0 do
+          (format t "Position ~D values: ~A~%" i position)
+          (loop for ranges in (mapcar #'second field-ranges) and j from 0 do
+                (let ((all-in t))
+                  (loop for value in position do
+                        (if (not (within-some-range value ranges))
+                            (setf all-in nil)))
+                  (when all-in
+                      (push j (aref possible-fields i))
+                      (format t "All position ~D are in some range for field ~D~%"
+                              i j)))))
+
+    (loop while t do
+          (let (matched-position
+                matched-field
+                (found nil))
+            
+            (loop for i from 0 below n do
+                  (when (= 1 (length (aref possible-fields i)))
+
+                    (setf matched-position i
+                          matched-field (first (aref possible-fields i))
+                          found t)
+
+                    ;; add the pair to the matching
+                    (push (list matched-position matched-field) matching)
+
+                    ;; remove the matched-field from each other
+                    (loop for j from 0 below n do
+                          (setf (aref possible-fields j)
+                                (remove matched-field (aref possible-fields j))))))
+            
+            (if (not found)
+                (return))))
+    
+    (format t "Matching: ~A~%" matching)
+    (let ((result 1))
+
+      (loop for e in matching do
+            (let ((pos (first e))
+                  (field (second e)))
+              (if (starts-with "departure" 
+                               (first (nth field field-ranges)))
+                  (setf result (* result (nth pos my-ticket))))))
+      result)))
+
+;(defun day16b (file)
+;  (let (field-ranges
+;        my-ticket
+;        nearby-tickets
+;        valid-tickets
+;        matching-graph
+;        matching
+;        field-mapping
+;        departure-fields
+;        )
+;
+;    (setf (values field-ranges my-ticket nearby-tickets)
+;          (parse-input file))
+;
+;    ;; keep only the valid tickets
+;    (setf valid-tickets
+;          (remove-if #'(lambda (tkt) (invalid-ticket-values field-ranges tkt))
+;                     nearby-tickets))
+;
+;    (format t "Valid: ~A~%" valid-tickets)
+;
+;    
+;    
+;    (setf matching-graph (make-matching-graph field-ranges valid-tickets))
+;    (setf matching (edmonds-karp matching-graph 'source 'sink))
+;    (setf field-mapping (matching-to-fields matching field-ranges))
+;
+;    (setf departure-fields
+;          (remove-if-not #'(lambda (f) (starts-with ".*" (second f)))
+;                         field-mapping))
+;
+;    (apply #'* (mapcar #'(lambda (m)
+;                           (nth (first m) my-ticket))
+;                       departure-fields))))
+
+;; ---------------------------- ;;
+;;     DAY 17: CONWAY CUBES     ;;
+;; ---------------------------- ;;
+
+#|
+(defun step-3d-automaton (grid timestep)
+  (let ((new-grid (alexandria:copy-array grid)))
+    
+    )
+  )
+
+(defun day17a (file)
+  (let ((input (get-file file))
+        n m
+        grid)
+    (setf n (length input)
+          m (length (first input))
+          grid (make-array (list n m 13) :initial-contents #\.))
+    
+    (loop for row in input and j from 0 do
+          (loop for c in row and i from 0 do
+                (setf (aref grid j i) (if (char= c #\#)
+                                          'active
+                                          'inactive))))
+    
+    
+    )
+  )
+|#
+
+(defun main ()
+  (let ((start (get-internal-run-time))
+        end)
+    (day1) (day2) (day3) (day4) (day5) (day6) 
+    (day7) (day8) (day9) (day10) (day11) (day12)
+    (day13) (day14) (day15)
+
+    ;; rest of the days...
+
+    (setf end (get-internal-run-time))
+    (format t "Total time: ~F~%" (/ (- end start ) 1000))))
+
+; (sb-ext:save-lisp-and-die "aoc"
+;                           :executable t
+;                           :toplevel 'main)
