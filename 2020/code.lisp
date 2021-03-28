@@ -1273,7 +1273,7 @@
     H))
 
 (defun edmonds-karp (G source sink)
-  (let (H)
+  (let ((H (copy-graph G)))
     
     (loop while (augmenting-path H source sink) do
           (let ((path (augmenting-path H source sink)))
@@ -1326,16 +1326,13 @@
                                              valid-tickets)))
     
     (loop for position in ticket-values and i from 0 do
-          (format t "Position ~D values: ~A~%" i position)
           (loop for ranges in (mapcar #'second field-ranges) and j from 0 do
                 (let ((all-in t))
                   (loop for value in position do
                         (if (not (within-some-range value ranges))
                             (setf all-in nil)))
                   (when all-in
-                      (push j (aref possible-fields i))
-                      (format t "All position ~D are in some range for field ~D~%"
-                              i j)))))
+                      (push j (aref possible-fields i))))))
 
     (loop while t do
           (let (matched-position
@@ -1360,9 +1357,7 @@
             (if (not found)
                 (return))))
     
-    (format t "Matching: ~A~%" matching)
     (let ((result 1))
-
       (loop for e in matching do
             (let ((pos (first e))
                   (field (second e)))
@@ -1371,83 +1366,172 @@
                   (setf result (* result (nth pos my-ticket))))))
       result)))
 
-;(defun day16b (file)
-;  (let (field-ranges
-;        my-ticket
-;        nearby-tickets
-;        valid-tickets
-;        matching-graph
-;        matching
-;        field-mapping
-;        departure-fields
-;        )
-;
-;    (setf (values field-ranges my-ticket nearby-tickets)
-;          (parse-input file))
-;
-;    ;; keep only the valid tickets
-;    (setf valid-tickets
-;          (remove-if #'(lambda (tkt) (invalid-ticket-values field-ranges tkt))
-;                     nearby-tickets))
-;
-;    (format t "Valid: ~A~%" valid-tickets)
-;
-;    
-;    
-;    (setf matching-graph (make-matching-graph field-ranges valid-tickets))
-;    (setf matching (edmonds-karp matching-graph 'source 'sink))
-;    (setf field-mapping (matching-to-fields matching field-ranges))
-;
-;    (setf departure-fields
-;          (remove-if-not #'(lambda (f) (starts-with ".*" (second f)))
-;                         field-mapping))
-;
-;    (apply #'* (mapcar #'(lambda (m)
-;                           (nth (first m) my-ticket))
-;                       departure-fields))))
+(defun day16 ()
+  (format t "~D~%" (day16a "input16.txt"))
+  (format t "~D~%" (day16b "input16.txt")))
 
 ;; ---------------------------- ;;
 ;;     DAY 17: CONWAY CUBES     ;;
 ;; ---------------------------- ;;
 
-#|
-(defun step-3d-automaton (grid timestep)
-  (let ((new-grid (alexandria:copy-array grid)))
+(defun alivep (cell grid)
+  (member cell (alexandria:hash-table-keys grid) :test (hash-table-test grid)))
+
+(defun step-3d-automaton (grid)
+  (let ((new-grid (make-hash-table :test (hash-table-test grid)))
+        (neighbour-counts (make-hash-table :test (hash-table-test grid))))
     
-    )
-  )
+    ;; count neighbours for neighbourhood of each active cell
+    (loop for key in (alexandria:hash-table-keys grid)
+          for value = (gethash key grid) do
+          (let ((x (first key))
+                (y (second key))
+                (z (third key)))
+
+            (loop for k from -1 to 1 do
+                  (loop for j from -1 to 1 do
+                        (loop for i from -1 to 1 do
+                              (let ((cell (list (+ x i)
+                                                (+ y j)
+                                                (+ z k))))
+                                (unless (and (zerop i) (zerop j) (zerop k))
+                                  (if (gethash cell neighbour-counts)
+                                      (incf (gethash cell neighbour-counts))
+                                      (setf (gethash cell neighbour-counts) 1)))))))))
+
+    (loop for cell in (alexandria:hash-table-keys neighbour-counts)
+          for neighbours = (gethash cell neighbour-counts) do
+
+          (if (alivep cell grid)
+              ;; if active, remain active if it has 2 or 3 active neighbours
+              (if (or (= neighbours 2) (= neighbours 3))
+                  (setf (gethash cell new-grid) t))
+
+              ;; otherwise become active if exactly 3 neighbours are
+              (if (= neighbours 3)
+                  (setf (gethash cell new-grid) t))))
+
+    new-grid))
+
+;; TODO: handle 4d automaton more gracefully (MACROS)
+(defun step-4d-automaton (grid)
+  (let ((new-grid (make-hash-table :test (hash-table-test grid)))
+        (neighbour-counts (make-hash-table :test (hash-table-test grid))))
+    
+    ;; count neighbours for neighbourhood of each active cell
+    (loop for key in (alexandria:hash-table-keys grid)
+          for value = (gethash key grid) do
+          (let ((x (first key))
+                (y (second key))
+                (z (third key))
+                (w (fourth key)))
+
+            (loop for l from -1 to 1 do
+                  (loop for k from -1 to 1 do
+                        (loop for j from -1 to 1 do
+                              (loop for i from -1 to 1 do
+                                    (let ((cell (list (+ x i)
+                                                      (+ y j)
+                                                      (+ z k)
+                                                      (+ w l))))
+                                      (unless (and (zerop i) (zerop j)
+                                                   (zerop k) (zerop l))
+                                        (if (gethash cell neighbour-counts)
+                                            (incf (gethash cell neighbour-counts))
+                                            (setf (gethash cell neighbour-counts) 1))))))))))
+
+    (loop for cell in (alexandria:hash-table-keys neighbour-counts)
+          for neighbours = (gethash cell neighbour-counts) do
+
+          (if (alivep cell grid)
+              ;; if active, remain active if it has 2 or 3 active neighbours
+              (if (or (= neighbours 2) (= neighbours 3))
+                  (setf (gethash cell new-grid) t))
+
+              ;; otherwise become active if exactly 3 neighbours are
+              (if (= neighbours 3)
+                  (setf (gethash cell new-grid) t))))
+
+    new-grid))
+
+(defun print-neighbour-counts (g)
+  (maphash #'(lambda (k v) (format t "~A: ~D~%" k v)) g))
+
+(defun print-grid (g)
+  (let ((key-test (hash-table-test g))
+        (xs (mapcar #'first (alexandria:hash-table-keys g)))
+        (ys (mapcar #'second (alexandria:hash-table-keys g)))
+        (zs (mapcar #'third (alexandria:hash-table-keys g)))
+        min-x max-x
+        min-y max-y
+        min-z max-z)
+
+    (setf min-x (apply #'min xs)
+          max-x (apply #'max xs)
+          min-y (apply #'min ys)
+          max-y (apply #'max ys)
+          min-z (apply #'min zs)
+          max-z (apply #'max zs))
+
+    (loop for z from min-z to max-z do
+          (format t "z=~D~%" z)
+          (loop for y from min-y to max-y do
+                (loop for x from min-x to max-x do
+                      (princ
+                        (if (member (list x y z)
+                                    (alexandria:hash-table-keys g) :test key-test)
+                            "#"
+                            ".")))
+                (terpri))
+          (terpri))))
 
 (defun day17a (file)
   (let ((input (get-file file))
-        n m
-        grid)
-    (setf n (length input)
-          m (length (first input))
-          grid (make-array (list n m 13) :initial-contents #\.))
-    
+        (active-cells (make-hash-table :test #'equal))
+        (timesteps 6))
+
     (loop for row in input and j from 0 do
-          (loop for c in row and i from 0 do
-                (setf (aref grid j i) (if (char= c #\#)
-                                          'active
-                                          'inactive))))
+          (loop for c across row and i from 0 do
+                (if (char= c #\#)
+                    (setf (gethash (list i j 0) active-cells) 0))))
+
+    (loop for i from 0 below timesteps do
+          (let ((new-grid (step-3d-automaton active-cells)))
+            ; (print-grid new-grid)
+            (setf active-cells new-grid)))
+
+    (hash-table-count active-cells)))
+
+(defun day17b (file)
+  (let ((input (get-file file))
+        (active-cells (make-hash-table :test #'equal))
+        (timesteps 6))
+    (loop for row in input and j from 0 do
+          (loop for c across row and i from 0 do
+                (if (char= c #\#)
+                    (setf (gethash (list i j 0 0) active-cells) 0))))
     
-    
-    )
-  )
-|#
+    (loop for i from 0 below timesteps do
+         (setf active-cells (step-4d-automaton active-cells)))
+
+    (hash-table-count active-cells)))
+
+(defun day17 ()
+  (format t "~A~%" (day17a "input17.txt"))
+  (format t "~A~%" (day17b "input17.txt")))
 
 (defun main ()
   (let ((start (get-internal-run-time))
         end)
     (day1) (day2) (day3) (day4) (day5) (day6) 
     (day7) (day8) (day9) (day10) (day11) (day12)
-    (day13) (day14) (day15)
+    (day13) (day14) (day15) (day16) (day17)
 
     ;; rest of the days...
 
     (setf end (get-internal-run-time))
     (format t "Total time: ~F~%" (/ (- end start ) 1000))))
 
-; (sb-ext:save-lisp-and-die "aoc"
-;                           :executable t
-;                           :toplevel 'main)
+(sb-ext:save-lisp-and-die "aoc"
+                          :executable t
+                          :toplevel 'main)
