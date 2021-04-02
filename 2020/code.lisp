@@ -96,8 +96,7 @@
                           (if (= 2020 (+ a b c))
                               (return-from day1b (* a b c)))))))))
 
-  (format t "~A~%" (day1a "input1.txt"))
-  (format t "~A~%" (day1b "input1.txt")))
+  (format t "1: ~A, ~A~%" (day1a "input1.txt") (day1b "input1.txt")))
 
 ;; ---------------------------- ;;
 ;; DAY 2 - PASSWORD PHILOSOPHY  ;;
@@ -1517,21 +1516,153 @@
     (hash-table-count active-cells)))
 
 (defun day17 ()
-  (format t "~A~%" (day17a "input17.txt"))
-  (format t "~A~%" (day17b "input17.txt")))
+  (format t "17: ~A, ~A" (day17a "input17.txt") (day17b "input17.txt")))
+
+;; ---------------------------- ;;
+;;   DAY 18 - OPERATION ORDER   ;;
+;; ---------------------------- ;;
+
+(defun make-queue ()
+  (let ((q (list nil)))
+    (cons q q)))
+
+(defun queue-contents (q)
+  (cdar q))
+
+(defun empty-queue-p (q)
+  (null (cdar q)))
+
+(defun queue-head (q)
+  (cadar q))
+
+(defun dequeue (q)
+  (car (setf (car q) (cdar q))))
+
+(defun enqueue (q item)
+  (setf (cdr q) (setf (cddr q) (list item))))
+
+(defun shunting-yard (line)
+  (with-input-from-string (s line)
+    (let (stack
+          (queue (make-queue))
+          c)
+
+      (loop while (setf c (read-char s nil nil)) do
+            (cond ((digit-char-p c) (enqueue queue (digit-char-p c)))
+                  ((char= c #\*) (push #\* stack))
+                  ((char= c #\+) (push #\+ stack))
+                  ((char= c #\() (push #\( stack))
+                  ((char= c #\)) (loop while (not (char= (first stack) #\()) do
+                                       (enqueue queue (pop stack)))
+                                 (pop stack)))
+
+            )
+      
+      (loop while stack do (enqueue queue (pop stack)))
+
+      (queue-contents queue))))
+
+(defun eval-rpn (rpn)
+  (let (stack c)
+    (loop while rpn do
+          (setf c (pop rpn))
+          (cond ((numberp c) (push c stack))
+                ((equal c #\+) (push (+ (pop stack) (pop stack)) stack))
+                ((equal c #\*) (push (* (pop stack) (pop stack)) stack))))
+    (first stack)))
+
+(defun line-to-rpn (line)
+  (eval-rpn (shunting-yard line)))
+
+(defun eval-line (line)
+  (with-input-from-string (s line)
+    (let (operands
+          operators
+          ch)
+      (loop while (setf ch (read-char s nil nil)) do
+            (cond 
+              ((digit-char-p ch) (push (digit-char-p ch) operands))
+
+              ((or (char= ch #\*) (char= ch #\+)) 
+               (if (equal (type-of (first operators)) (type-of #'+))
+                   (progn
+                     (push (funcall (pop operators) (pop operands) (pop operands))
+                           operands)
+                     (push (if (char= ch #\*) #'* #'+) operators))
+                   (push (if (char= ch #\*) #'* #'+) operators)))
+
+              ;((char= c #\+) (push #\+ stack))
+              ((char= ch #\() (push #\( operators))
+              ((char= ch #\)) (loop while (not (equal (first operators) #\()) do
+                                    (push (funcall (pop operators)
+                                                   (pop operands) (pop operands))
+                                          operands))
+
+                              ;; remove the '('
+                              (pop operators))))
+
+      (loop while operators do
+            (push (funcall (pop operators) (pop operands) (pop operands)) operands))
+
+      (first operands))))
+
+(defun eval-line-2 (line)
+  (with-input-from-string (s line)
+    (let (operands
+          operators
+          ch)
+      (loop while (setf ch (read-char s nil nil)) do
+            (cond 
+              ((digit-char-p ch) (push (digit-char-p ch) operands))
+
+              ((or (char= ch #\*) (char= ch #\+)) 
+               (if (equal (first operators) #'+)
+                   (progn
+                     (push (funcall (pop operators) (pop operands) (pop operands))
+                           operands)
+                     (push (if (char= ch #\*) #'* #'+) operators))
+                   (push (if (char= ch #\*) #'* #'+) operators)))
+
+              ;((char= c #\+) (push #\+ stack))
+              ((char= ch #\() (push #\( operators))
+              ((char= ch #\)) (loop while (not (equal (first operators) #\()) do
+                                    (push (funcall (pop operators)
+                                                   (pop operands) (pop operands))
+                                          operands))
+
+                              ;; remove the '('
+                              (pop operators))))
+
+      (loop while operators do
+            (push (funcall (pop operators) (pop operands) (pop operands)) operands))
+
+      (first operands))))
+
+(defun day18a (file)
+  (let ((input (get-file file)))
+    (setf input (mapcar #'(lambda (l) (remove #\Space l)) input))
+    (apply #'+ (mapcar #'eval-line input))))
+
+(defun day18b (file)
+  (let ((input (get-file file)))
+    (setf input (mapcar #'(lambda (l) (remove #\Space l)) input))
+    (apply #'+ (mapcar #'eval-line-2 input))))
+
+(defun day18 ()
+  (format t "18: ~D, ~D" (day18a "input18.txt") (day18b "input18.txt")))
 
 (defun main ()
   (let ((start (get-internal-run-time))
         end)
     (day1) (day2) (day3) (day4) (day5) (day6) 
     (day7) (day8) (day9) (day10) (day11) (day12)
-    (day13) (day14) (day15) (day16) (day17)
+    (day13) (day14) (day15) (day16) (day17) (day18)
 
     ;; rest of the days...
 
     (setf end (get-internal-run-time))
     (format t "Total time: ~F~%" (/ (- end start ) 1000))))
 
-(sb-ext:save-lisp-and-die "aoc"
-                          :executable t
-                          :toplevel 'main)
+; (sb-ext:save-lisp-and-die "aoc"
+;                           :executable t
+;                           :toplevel 'main)
