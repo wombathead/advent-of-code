@@ -10,12 +10,16 @@
            :breadth-first-search
            :depth-first-search
            :topological-ordering
-           :count-paths))
+           :count-paths
+           :edmonds-karp
+           ))
 
 (in-package :graph)
 
+;; TODO: convert to use graph structure
 (defun print-graph (G)
-  (maphash #'(lambda (k v) (format T "~A: ~{~A ~}~%" k v)) G))
+  (maphash #'(lambda (k v) (format T "~A: ~{~A ~}~%" k v))
+           G))
 
 (defun reverse-edges (G)
   " reverse all edges in digraph G "
@@ -122,3 +126,5 @@
             (unless (eq neighbour-paths NIL)
               (setf (gethash w paths) (reduce #'+ neighbour-paths)))))
     (gethash u paths)))
+
+;;; TODO: matching algorithms: ford-fulkerson (edmonds-karp), hopcroft-karp, more???
