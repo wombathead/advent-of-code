@@ -1,4 +1,9 @@
-(load "../2020/util.lisp")
+
+;; ----------------
+;;   Day 2: Dive!
+;; ----------------
+
+(load "util.lisp")
 
 (defun advent-02a (filename)
   (loop for (dir dst) in (mapcar #'str:words (get-file filename))

@@ -1,4 +1,9 @@
-(load "../2020/util.lisp")
+
+;; ----------------------
+;;   Day 1: Sonar Sweep
+;; ----------------------
+
+(load "util.lisp")
 
 (defun advent-01a (filename)
   (loop with input = (mapcar #'parse-integer (get-file filename))
