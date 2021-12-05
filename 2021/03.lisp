@@ -30,6 +30,6 @@
                    finally (return (first remaining)))))
     (let ((input (get-file filename)))
       (* (parse-integer (filter-candidates input (lambda (zeroes ones) (if (> zeroes ones) #\0 #\1)))
-                       :radix 2)
+                        :radix 2)
          (parse-integer (filter-candidates input (lambda (zeroes ones) (if (<= zeroes ones) #\0 #\1)))
                         :radix 2)))))
