@@ -3,9 +3,9 @@
 ;;   Day 4: Giant Squid
 ;; ----------------------
 
-(load "util.lisp")
-
 (ql:quickload :str)
+
+(load "util.lisp")
 
 (defun parse-numbers (filename)
   (mapcar #'parse-integer (str:split "," (first (get-file filename)))))
@@ -39,18 +39,6 @@
                  if (= entry number)
                  do (setf (second (aref card j i)) t))))
 
-(defun matrix-rows (matrix)
-  (loop with (n m) = (array-dimensions matrix)
-        for j from 0 below n
-        collect (loop for i from 0 below m
-                      collect (aref matrix j i))))
-
-(defun matrix-columns (matrix)
-  (loop with (n m) = (array-dimensions matrix)
-        for j from 0 below n
-        collect (loop for i from 0 below m
-                      collect (aref matrix i j))))
-
 (defun card-wins-p (card)
   (or (member t (mapcar (lambda (list) (every (lambda (e) (second e)) list))
                         (matrix-rows card)))
@@ -58,6 +46,7 @@
                         (matrix-columns card)))))
 
 (defun card-value (card)
+  "Sum all unmarked values on CARD"
   (loop for row in (matrix-rows card)
         sum (loop for entry in row
                   unless (second entry)
