@@ -7,9 +7,6 @@
 
 (load "util.lisp")
 
-(defun parse-numbers (filename)
-  (mapcar #'parse-integer (str:split "," (first (get-file filename)))))
-
 (defun parse-bingo-cards (filename)
   (let* ((input (cddr (get-file filename)))
          (n (length (str:words (first input))))
@@ -59,11 +56,10 @@
         final-number)
     (loop for number in numbers
           do (loop for card in bingo-cards
-                   do
-                   (mark-card number card)
+                   do (mark-card number card)
                    if (card-wins-p card)
-                   (setf winning-card card
-                         final-number number))
+                   do (setf winning-card card
+                            final-number number))
           until winning-card)
     (* (card-value winning-card) final-number)))
 
@@ -75,8 +71,7 @@
     (loop for number in numbers
           with remaining-cards = (reverse bingo-cards)
           do (loop for card in remaining-cards
-                   do
-                   (mark-card number card)
+                   do (mark-card number card)
                    (setf remaining-numbers (rest numbers))
                    unless (card-wins-p card)
                    collect card into next-remaining-cards

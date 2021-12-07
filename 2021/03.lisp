@@ -16,20 +16,22 @@
         finally (return (* gamma (logxor (1- (expt 2 n)) gamma)))))
 
 (defun advent-03b (filename)
-  (labels ((nth-char= (string n character)
-             (char= (char string n) character))
+  (flet ((filter-candidates (candidates filter-rule)
+           (loop for i from 0 below (length (first candidates))
+                 with remaining = candidates
+                 for zeroes = (count #\0 (mapcar (lambda (bitstring) (char bitstring i)) remaining))
+                 for ones = (- (length remaining) zeroes)
+                 for char = (funcall filter-rule zeroes ones)
+                 until (= 1 (length remaining))
+                 do (setf remaining (remove-if-not (lambda (bitstring)
+                                                     (nth-char= bitstring i char))
+                                                   remaining))
+                 finally (return (first remaining)))))
 
-           (filter-candidates (candidates filter-rule)
-             (loop for i from 0 below (length (first candidates))
-                   with remaining = candidates
-                   for zeroes = (count #\0 (mapcar (lambda (bitstring) (char bitstring i)) remaining))
-                   for ones = (- (length remaining) zeroes)
-                   for char = (funcall filter-rule zeroes ones)
-                   until (= 1 (length remaining))
-                   do (setf remaining (remove-if-not (lambda (bitstring) (nth-char= bitstring i char)) remaining))
-                   finally (return (first remaining)))))
     (let ((input (get-file filename)))
-      (* (parse-integer (filter-candidates input (lambda (zeroes ones) (if (> zeroes ones) #\0 #\1)))
-                        :radix 2)
-         (parse-integer (filter-candidates input (lambda (zeroes ones) (if (<= zeroes ones) #\0 #\1)))
-                        :radix 2)))))
+      (* (parse-integer
+           (filter-candidates input (lambda (zeroes ones) (if (> zeroes ones) #\0 #\1)))
+           :radix 2)
+         (parse-integer
+           (filter-candidates input (lambda (zeroes ones) (if (<= zeroes ones) #\0 #\1)))
+           :radix 2)))))
