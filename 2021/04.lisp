@@ -50,7 +50,7 @@
                   sum (first entry))))
 
 (defun advent-04a (filename)
-  (let ((numbers (parse-numbers filename))
+  (let ((numbers (get-numbers filename))
         (bingo-cards (parse-bingo-cards filename))
         winning-card
         final-number)
@@ -64,7 +64,7 @@
     (* (card-value winning-card) final-number)))
 
 (defun advent-04b (filename)
-  (let ((numbers (parse-numbers filename))
+  (let ((numbers (get-numbers filename))
         (bingo-cards (parse-bingo-cards filename))
         last-winning-card
         remaining-numbers)
