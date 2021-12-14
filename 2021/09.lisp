@@ -5,31 +5,6 @@
 
 (load "util.lisp")
 
-(defun 2d-neighbours (grid x y neighbourhood-type)
-  "Return coordinates (i . j) of all neighbours to (X,Y) in GRID"
-  (let ((m (array-dimension grid 0))
-        (n (array-dimension grid 1))
-        neighbours)
-
-    (flet ((neigbourhood-test (x y i j n m)
-             (let ((xi (+ x i))
-                   (yj (+ y j)))
-               (case neighbourhood-type
-                 (:von-neumann (or (minusp xi) (minusp yj)
-                                   (>= xi n) (>= yj m)
-                                   (and (= xi x) (= yj y))))
-                 (:moore (or (minusp xi) (minusp yj)
-                             (>= xi n) (>= yj m)
-                             (and (= xi x) (= yj y))
-                             (= (abs i) (abs j))))))))
-      
-      (loop for j from -1 upto 1
-            do (loop for i from -1 upto 1
-                 for xi = (+ x i) and yj = (+ y j)
-                 unless (neigbourhood-test x y i j n m)
-                 do (push (cons xi yj) neighbours)))
-      neighbours)))
-
 (defun get-minima (grid)
   "Return coordinates (x . y) of the minima of GRID"
   (let ((m (array-dimension grid 0))
@@ -59,26 +34,16 @@
     graph))
 
 (defun advent-09a (filename)
-  (let* ((input (mapcar (lambda (line)
-                          (map 'list (lambda (char) (digit-char-p char)) line))
-                        (get-file filename)))
-         (m (length input))
-         (n (length (first input)))
-         (grid (make-array (list m n) :initial-contents input)))
+  (let ((input (get-number-grid filename)))
 
     ;; sum of 1+ minima in grid
-    (reduce #'+ (mapcar (lambda (m) (1+ (aref grid (rest m) (first m))))
-                        (get-minima grid)))))
+    (reduce #'+ (mapcar (lambda (m) (1+ (aref input (rest m) (first m))))
+                        (get-minima input)))))
 
 (defun advent-09b (filename)
-  (let* ((input (mapcar (lambda (line)
-                          (map 'list (lambda (char) (digit-char-p char)) line))
-                        (get-file filename)))
-         (m (length input))
-         (n (length (first input)))
-         (grid (make-array (list m n) :initial-contents input))
-         (graph (grid->graph grid)))
+  (let* ((input (get-number-grid filename))
+         (graph (grid->graph input)))
 
-    (loop for root in (get-minima grid)
+    (loop for root in (get-minima input)
           collect (tree-size (bfs graph root)) into basins
           finally (return (reduce #'* (subseq (sort basins #'>) 0 3))))))
