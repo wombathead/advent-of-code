@@ -13,6 +13,19 @@
   "Parse a single line of numbers contained in FILENAME"
   (mapcar #'parse-integer (str:split "," (first (get-file filename)))))
 
+(defun get-number-lists (filename)
+  "Parse FILENAME as a list of lists of numbers"
+  (mapcar (lambda (line)
+            (map 'list (lambda (char) (digit-char-p char)) line))
+          (get-file filename)))
+
+(defun get-number-grid (filename)
+  "Parse FILENAME as a 2D array of numbers"
+  (let* ((data (get-number-lists filename))
+         (m (length data))
+         (n (length (first data))))
+    (make-array (list m n) :initial-contents data)))
+
 (defun matrix-rows (matrix)
   "Return the rows of 2D MATRIX as a list of lists"
   (loop with (n m) = (array-dimensions matrix)
@@ -63,3 +76,27 @@
         sum (length (gethash n G)) into s
         finally (return (1+ s))))
 
+(defun 2d-neighbours (grid x y neighbourhood-type)
+  "Return coordinates (i . j) of all neighbours to (X,Y) in GRID"
+  (let ((m (array-dimension grid 0))
+        (n (array-dimension grid 1))
+        neighbours)
+
+    (flet ((neigbourhood-test (x y i j n m)
+             (let ((xi (+ x i))
+                   (yj (+ y j)))
+               (case neighbourhood-type
+                 (:von-neumann (or (minusp xi) (minusp yj)
+                                   (>= xi n) (>= yj m)
+                                   (and (= xi x) (= yj y))))
+                 (:moore (or (minusp xi) (minusp yj)
+                             (>= xi n) (>= yj m)
+                             (and (= xi x) (= yj y))
+                             (= (abs i) (abs j))))))))
+      
+      (loop for j from -1 upto 1
+            do (loop for i from -1 upto 1
+                 for xi = (+ x i) and yj = (+ y j)
+                 unless (neigbourhood-test x y i j n m)
+                 do (push (cons xi yj) neighbours)))
+      neighbours)))
