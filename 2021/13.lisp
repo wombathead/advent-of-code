@@ -9,21 +9,23 @@
 (defun parse-input (filename)
   (let ((input (get-file filename))
         points folds)
-    (loop for line = (first input)
-          until (string= line "")
-          for (x y) = (mapcar #'parse-integer (str:split "," line))
-          do (push (cons x y) points)
-          (setf input (rest input))
-          finally (setf input (rest input)))
-    (loop for line in input
-          for matches = (nth-value 1 (cl-ppcre:scan-to-strings
-                                       "(x|y)=([0-9]+)"
-                                       line))
-          for axis = (read-from-string (aref matches 0))
-          for fold-line = (parse-integer (aref matches 1))
-          do (push (cons axis fold-line) folds))
 
-    (values (reverse points) (reverse folds))))
+    (setf points (loop for line = (first input)
+                       until (string= line "")
+                       for (x y) = (mapcar #'parse-integer (str:split "," line))
+                       do (setf input (rest input))
+                       collect (cons x y)
+                       finally (setf input (rest input))))
+
+    (setf folds (loop for line in input
+                      for matches = (nth-value 1 (cl-ppcre:scan-to-strings
+                                                   "(x|y)=([0-9]+)"
+                                                   line))
+                      for axis = (read-from-string (aref matches 0))
+                      for fold-line = (parse-integer (aref matches 1))
+                      collect (cons axis fold-line)))
+
+    (values points folds)))
 
 (defun print-grid (grid)
   (loop for j from 0 below (array-dimension grid 0)
@@ -41,7 +43,7 @@
            (retained (remove-if fold? points))
            (folded (remove-if-not fold? points)))
       (loop for p in folded
-            for x = (car p) and y = (cdr p)
+            for (x . y) = p
             for reflection = (case axis
                                (y (cons x (- line (- y line))))
                                (x (cons (- line (- x line)) y)))
@@ -73,7 +75,7 @@
           then (remove-if-not fold? remaining)
 
           do (loop for p in folded
-                   for x = (car p) and y = (cdr p)
+                   for (x . y) = p
                    for reflection = (case axis
                                       (y (cons x (- line (- y line))))
                                       (x (cons (- line (- x line)) y)))
