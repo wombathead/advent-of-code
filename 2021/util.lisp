@@ -116,3 +116,13 @@
                  unless (neigbourhood-test x y i j n m)
                  do (push (cons xi yj) neighbours)))
       neighbours)))
+
+(defun print-hash-table (ht)
+  (maphash (lambda (k v) (format t "~A: ~A~%" k v)) ht))
+
+(defun print-grid (grid)
+  (loop for j from 0 below (array-dimension grid 0)
+        do (loop for i from 0 below (array-dimension grid 1)
+                 do (format t "~A" (aref grid j i)))
+        (terpri)))
+
