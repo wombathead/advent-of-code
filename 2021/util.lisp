@@ -70,6 +70,22 @@
                    (push v (gethash u tree)))
           finally (return tree))))
 
+(defun dfs (G n)
+  "Depth First Search starting from N"
+  (let ((explored (make-hash-table :test (hash-table-test G)))
+        (tree (make-hash-table :test (hash-table-test G)))
+        (S (list n)))
+    (setf (gethash n explored) t)
+    (loop while S
+          for u = (pop S)
+          do (loop for v in (gethash u G)
+                   unless (gethash v explored)
+                   do
+                   (setf (gethash v explored) t
+                         S (cons v S))
+                   (push v (gethash u tree)))
+          finally (return tree))))
+
 (defun tree-size (G)
   "Number of nodes in tree G"
   (loop for n being each hash-key of G
