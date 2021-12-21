@@ -1,6 +1,7 @@
 ;;;; util.lisp
 
 (ql:quickload :str)
+(ql:quickload :cl-heap)
 
 (defun get-file (filename)
   "Return contents of FILENAME as a list of strings"
@@ -126,3 +127,43 @@
                  do (format t "~A" (aref grid j i)))
         (terpri)))
 
+(defun argmin (items expression)
+  "Return some element from ITEMS that minimizes EXPRESSION"
+  (loop with minimizer = (first items)
+        with min = (funcall expression minimizer)
+        for i in items
+        for r = (funcall expression i)
+        if (<= r min)
+        do (setf min r
+                 minimizer i)
+        finally (return minimizer)))
+
+(defun dijkstra (G n target)
+  ;; TODO: make work with TARGET optional
+  (let ((D (make-hash-table :test (hash-table-test G)))
+        (P (make-hash-table :test (hash-table-test G)))
+        (visited (make-hash-table :test (hash-table-test G)))
+        (Q (make-instance 'cl-heap:priority-queue)))
+
+    ;; add all nodes to Q
+    (loop for u in (alexandria:hash-table-keys G)
+          do
+          (setf (gethash u D) double-float-positive-infinity)
+          (setf (gethash u P) nil)
+          (cl-heap:enqueue Q u (gethash u D)))
+    
+    ;; set d[n] = 0
+    (setf (gethash n D) 0)
+
+    (loop for u = (cl-heap:dequeue Q)
+          until (equal u target) 
+          do 
+          (setf (gethash u visited) t)
+          (loop for (v . w) in (gethash u G)
+                for dist = (+ (gethash u D) w)
+                unless (gethash v visited)
+                do (when (< dist (gethash v D))
+                     (setf (gethash v D) dist
+                           (gethash v P) (cons u w))
+                     (cl-heap:enqueue Q v dist))))
+    P))
