@@ -87,6 +87,20 @@
                    (push v (gethash u tree)))
           finally (return tree))))
 
+(defun dfs-recursive (G n)
+  "Recursive implementation of Depth First Search starting from N"
+  (let ((explored (make-hash-table :test (hash-table-test G)))
+        (tree (make-hash-table :test (hash-table-test G))))
+    (labels ((explore (u)
+               (setf (gethash u explored) t)
+               (loop for v in (gethash u G)
+                     unless (gethash v explored)
+                     do
+                     (push v (gethash u tree))
+                     (explore v))))
+      (explore n)
+      tree)))
+
 (defun tree-size (G)
   "Number of nodes in tree G"
   (loop for n being each hash-key of G
