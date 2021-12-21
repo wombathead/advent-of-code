@@ -152,6 +152,17 @@
                  minimizer i)
         finally (return minimizer)))
 
+(defun argmax (items expression)
+  "Return some element from ITEMS that maximizes EXPRESSION"
+  (loop with maximizer = (first items)
+        with max = (funcall expression maximizer)
+        for i in items
+        for r = (funcall expression i)
+        if (> r max)
+        do (setf max r
+                 maximizer i)
+        finally (return maximizer)))
+
 (defun dijkstra (G n target)
   ;; TODO: make work with TARGET optional
   (let ((D (make-hash-table :test (hash-table-test G)))
