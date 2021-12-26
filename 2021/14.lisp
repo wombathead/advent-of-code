@@ -20,19 +20,19 @@
                       finally (return rules)))
     (values template rules)))
 
-(defun simulate-polymer (template rules steps)
+(defun simulate-polymer (polymer rules steps)
   (let ((pair-counts (make-hash-table :test 'equal))
         (elem-counts (make-hash-table :test 'equal)))
 
     ;; initialise pair counts
-    (loop for (a b) on (coerce template 'list) while b
+    (loop for (a b) on (coerce polymer 'list) while b
           for pair = (coerce (list a b) 'string)
           do (if (gethash pair pair-counts) 
                  (incf (gethash pair pair-counts))
                  (setf (gethash pair pair-counts) 1)))
 
     ;; initialise element counts
-    (loop for a across template
+    (loop for a across polymer
           for elem-string = (coerce (list a) 'string)
           do (if (gethash elem-string elem-counts) 
                  (incf (gethash elem-string elem-counts))
@@ -44,8 +44,7 @@
                    for c = (gethash pair pair-counts)
                    for substitution = (gethash pair rules)
                    if substitution
-                   do
-                   (decf (gethash pair pc) c)   ; we have destroyed this pair
+                   do (decf (gethash pair pc) c)   ; we have destroyed this pair
 
                    ;; introduce new element
                    (if (gethash substitution elem-counts)

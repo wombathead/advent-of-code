@@ -41,8 +41,7 @@
                                   (x (> (car p) line)))))
            (retained (remove-if fold? points))
            (folded (remove-if-not fold? points)))
-      (loop for p in folded
-            for (x . y) = p
+      (loop for (x . y) in folded
             for reflection = (case axis
                                (y (cons x (- line (- y line))))
                                (x (cons (- line (- x line)) y)))
@@ -73,8 +72,7 @@
           for folded = (remove-if-not fold? points)
           then (remove-if-not fold? remaining)
 
-          do (loop for p in folded
-                   for (x . y) = p
+          do (loop for (x . y) in folded
                    for reflection = (case axis
                                       (y (cons x (- line (- y line))))
                                       (x (cons (- line (- x line)) y)))
