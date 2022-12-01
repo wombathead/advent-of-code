@@ -10,10 +10,9 @@
            "Sum of absolute differences between POSITION and NUMBERS"
            (loop for n in numbers
                  sum (abs (- position n)))))
-    (loop with input = (get-numbers filename)
-          with m = (median input)
-          for y in (if (integerp m) (list m) (list (floor m) (ceiling m)))
-          minimize (total-cost y input))))
+    (let* ((input (get-numbers filename))
+           (y (median input)))
+      (total-cost y input))))
 
 (defun advent-07b (filename)
   (flet ((total-cost (position numbers)
