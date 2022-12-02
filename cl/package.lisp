@@ -5,4 +5,6 @@
   (:export #:read-from-file
            #:empty-string-p
            #:aoc-2022-01a
-           #:aoc-2022-01b))
+           #:aoc-2022-01b  
+           #:aoc-2022-02a
+           #:aoc-2022-02b))
