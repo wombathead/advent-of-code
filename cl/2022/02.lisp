@@ -4,9 +4,6 @@
 
 (in-package :aoc)
 
-(defun char-difference (a b)
-  (- (char-code a) (char-code b)))
-
 (defun char->action (c)
   (let ((c (if (char> c #\C)
                (code-char (+ (char-code #\A)

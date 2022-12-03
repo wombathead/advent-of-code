@@ -15,7 +15,7 @@
                   (setf current-bag nil))
         else
         do (push (parse-integer line) current-bag)
-        finally (return (top-n-bags bags 1))))
+        finally (return (first (top-n-bags bags 1)))))
 
 (defun aoc-2022-01b (filename)
   (loop with current-bag and bags
