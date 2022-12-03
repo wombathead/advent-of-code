@@ -1,12 +1,9 @@
 
-
 ;; -------------------------------
 ;;   Day 5: Hydrothermal Venture
 ;; -------------------------------
 
-(ql:quickload :cl-ppcre)
-
-(load "util.lisp")
+(in-package :aoc)
 
 (defun parse-line (line)
   (let (str points)
@@ -15,8 +12,8 @@
                                 line))
     (map 'vector #'parse-integer points)))
 
-(defun advent-05a (filename)
-  (let* ((vents (mapcar #'parse-line (get-file filename)))
+(defun aoc-2021-05a (filename)
+  (let* ((vents (mapcar #'parse-line (read-from-file filename)))
          (m (1+ (reduce #'max (mapcar (lambda (v) (max (aref v 1) (aref v 3))) vents))))
          (n (1+ (reduce #'max (mapcar (lambda (v) (max (aref v 0) (aref v 2))) vents))))
          (grid (make-array (list m n))))
@@ -35,8 +32,8 @@
           sum (loop for i from 0 below n 
                     count (>= (aref grid j i) 2)))))
 
-(defun advent-05b (filename)
-  (let* ((vents (mapcar #'parse-line (get-file filename)))
+(defun aoc-2021-05b (filename)
+  (let* ((vents (mapcar #'parse-line (read-from-file filename)))
          (m (1+ (reduce #'max (mapcar (lambda (v) (max (aref v 1) (aref v 3))) vents))))
          (n (1+ (reduce #'max (mapcar (lambda (v) (max (aref v 0) (aref v 2))) vents))))
          (grid (make-array (list m n))))

@@ -3,17 +3,17 @@
 ;;   Day 1: Sonar Sweep
 ;; ----------------------
 
-(load "util.lisp")
+(in-package :aoc)
 
-(defun advent-01a (filename)
-  (loop with input = (mapcar #'parse-integer (get-file filename))
+(defun aoc-2021-01a (filename)
+  (loop with input = (mapcar #'parse-integer (read-from-file filename))
         for a = nil then b
         for b in input
         when a
         count (> b a)))
 
-(defun advent-01b (filename)
-  (loop with input = (mapcar #'parse-integer (get-file filename))
+(defun aoc-2021-01b (filename)
+  (loop with input = (mapcar #'parse-integer (read-from-file filename))
         for (a b c) on input
         while (and a b c)
         for prev-sum = nil then sum

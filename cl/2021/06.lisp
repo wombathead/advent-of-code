@@ -3,9 +3,7 @@
 ;;   Day 6: Lanternfish 
 ;; ----------------------
 
-(ql:quickload :str)
-
-(load "util.lisp")
+(in-package :aoc)
 
 (defun step-population-list (population)
   (loop for f in population
@@ -26,14 +24,14 @@
         (incf (aref p 8) new-additions)
         (return p)))
 
-(defun advent-06a (filename)
-  (let ((input (mapcar #'parse-integer (str:split "," (first (get-file filename))))))
+(defun aoc-2021-06a (filename)
+  (let ((input (mapcar #'parse-integer (str:split "," (first (read-from-file filename))))))
     (loop for i from 0 upto 80
           for f = input then (step-population-list f)
           finally (return (length f)))))
 
-(defun advent-06b (filename)
-  (let ((input (mapcar #'parse-integer (str:split "," (first (get-file filename)))))
+(defun aoc-2021-06b (filename)
+  (let ((input (mapcar #'parse-integer (str:split "," (first (read-from-file filename)))))
         (population (make-array '(9))))
     (loop for i from 0 upto 8
           do (setf (aref population i) (count i input)))

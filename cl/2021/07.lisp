@@ -3,9 +3,9 @@
 ;;   Day 7: The Treachery of Whales
 ;; ----------------------------------
 
-(load "util.lisp")
+(in-package :aoc)
 
-(defun advent-07a (filename)
+(defun aoc-2021-07a (filename)
   (flet ((total-cost (position numbers)
            "Sum of absolute differences between POSITION and NUMBERS"
            (loop for n in numbers
@@ -14,7 +14,7 @@
            (y (median input)))
       (total-cost y input))))
 
-(defun advent-07b (filename)
+(defun aoc-2021-07b (filename)
   (flet ((total-cost (position numbers)
            (loop for n in numbers
                  for difference = (abs (- position n))

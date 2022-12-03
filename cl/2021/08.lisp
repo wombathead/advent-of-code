@@ -3,12 +3,8 @@
 ;;   Day 8: Seven Segment Search
 ;; -------------------------------
 
-(load "util.lisp")
-
-(ql:quickload :str)
-
 (defun advent-08a (filename)
-  (let ((input (get-file filename)))
+  (let ((input (read-from-file filename)))
     (loop for line in input
           for (signal-pattern output-value) = (str:split " | " line)
           sum (loop for value in (str:words output-value)
@@ -16,9 +12,21 @@
                     count (member length '(2 3 4 7))))))
 
 (defun advent-08b (filename)
+
   (flet ((deduce-codes (pattern)
+
            (let ((number-codes (make-array '(10)))
                  (code-numbers (make-hash-table :test 'equal)))
+
+             (flet ((deduce-code (digit predicate)
+                      (loop for p in pattern
+                            for code = (sort p #'char<)
+                            for code-chars = (coerce code 'list)
+                            for digit-chars = (coerce (aref number-codes digit) 'list)
+                            when (funcall predicate)
+                            do (setf (gethash code code-numbers) digit
+                                     (aref number-codes digit) code)))))
+             
              ;; first get the numbers we know straight away
              (loop for p in pattern
                    for code = (sort p #'char<)
@@ -100,7 +108,7 @@
 
              code-numbers)))
 
-    (loop with input = (get-file filename)
+    (loop with input = (read-from-file filename)
           for line in input
           for (signal-pattern output-value) = (str:split " | " line)
           for pattern = (str:words signal-pattern)

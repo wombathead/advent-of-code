@@ -3,12 +3,10 @@
 ;;   Day 4: Giant Squid
 ;; ----------------------
 
-(ql:quickload :str)
-
-(load "util.lisp")
+(in-package :aoc)
 
 (defun parse-bingo-cards (filename)
-  (let* ((input (cddr (get-file filename)))
+  (let* ((input (cddr (read-from-file filename)))
          (n (length (str:words (first input))))
          card-rows
          bingo-cards)
@@ -49,7 +47,7 @@
                   unless (second entry)
                   sum (first entry))))
 
-(defun advent-04a (filename)
+(defun aoc-2021-04a (filename)
   (let ((numbers (get-numbers filename))
         (bingo-cards (parse-bingo-cards filename))
         winning-card
@@ -63,7 +61,7 @@
           until winning-card)
     (* (card-value winning-card) final-number)))
 
-(defun advent-04b (filename)
+(defun aoc-2021-04b (filename)
   (let ((numbers (get-numbers filename))
         (bingo-cards (parse-bingo-cards filename))
         last-winning-card
