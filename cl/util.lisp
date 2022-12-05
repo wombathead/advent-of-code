@@ -9,11 +9,17 @@
           while line
           collect line)))
 
+(defun print-hash-table (ht)
+  (maphash (lambda (k v) (format t "~A: ~A~%" k v)) ht))
+
 (defun empty-string-p (string)
   (zerop (length string)))
 
 (defun char-difference (a b)
   (- (char-code a) (char-code b)))
+
+(defun chars->string (character-list)
+  (coerce character-list 'string))
 
 (defun nth-char= (string n character)
   "Return T if the Nth character of STRING equals CHARACTER"
