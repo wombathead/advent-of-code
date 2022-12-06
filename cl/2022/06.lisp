@@ -4,18 +4,17 @@
 
 (in-package :aoc)
 
-(defun aoc-2022-06a (filename)
-  (loop with buffer = (coerce (first (read-from-file filename)) 'list)
-        for start on buffer
-        for window = (subseq start 0 4)
-        for i from 4
-        if (= 4 (length (remove-duplicates window)))
+(defun members-until-window-distinct (list window-size)
+  (loop for start on list
+        for window = (subseq start 0 window-size)
+        for i from window-size
+        if (= window-size (length (remove-duplicates window)))
         return i))
 
+(defun aoc-2022-06a (filename)
+  (members-until-window-distinct
+    (coerce (first (read-from-file filename)) 'list) 4))
+
 (defun aoc-2022-06b (filename)
-  (loop with buffer = (coerce (first (read-from-file filename)) 'list)
-        for start on buffer
-        for window = (subseq start 0 14)
-        for i from 14
-        if (= 14 (length (remove-duplicates window)))
-        return i))
+  (members-until-window-distinct
+    (coerce (first (read-from-file filename)) 'list) 14))
