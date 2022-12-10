@@ -1,5 +1,5 @@
 (defsystem "aoc"
-  :depends-on (:alexandria :str :cl-ppcre)
+  :depends-on (:alexandria :str :cl-ppcre :iterate)
   :components ((:file "package")
                (:file "util")
 
@@ -17,4 +17,6 @@
                (:file "2022/03")  
                (:file "2022/04")  
                (:file "2022/05")  
-               (:file "2022/06")))
+               (:file "2022/06")  
+               (:file "2022/08")  
+               (:file "2022/10")))

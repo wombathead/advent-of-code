@@ -29,32 +29,38 @@
   "Parse a single line of numbers contained in FILENAME"
   (mapcar #'parse-integer (str:split "," (first (read-from-file filename)))))
 
-(defun get-number-lists (filename)
+(defun read-number-lists (filename)
   "Parse FILENAME as a list of lists of numbers"
   (mapcar (lambda (line)
             (map 'list (lambda (char) (digit-char-p char)) line))
           (read-from-file filename)))
 
-(defun get-number-grid (filename)
+(defun read-number-grid (filename)
   "Parse FILENAME as a 2D array of numbers"
-  (let* ((data (get-number-lists filename))
+  (let* ((data (read-number-lists filename))
          (m (length data))
          (n (length (first data))))
     (make-array (list m n) :initial-contents data)))
 
+(defun matrix-row (matrix i)
+  "Return row I of MATRIX as a list"
+  (loop for j from 0 below (array-dimension matrix 1)
+        collect (aref matrix i j)))
+
 (defun matrix-rows (matrix)
   "Return the rows of 2D MATRIX as a list of lists"
-  (loop with (n m) = (array-dimensions matrix)
-        for j from 0 below n
-        collect (loop for i from 0 below m
-                      collect (aref matrix j i))))
+  (loop for i from 0 below (array-dimension matrix 1)
+        collect (matrix-row matrix i)))
+
+(defun matrix-column (matrix j)
+  "Return column J of MATRIX as a list"
+  (loop for i from 0 below (array-dimension matrix 0)
+        collect (aref matrix i j)))
 
 (defun matrix-columns (matrix)
   "Return the columns of 2D MATRIX as a list of lists"
-  (loop with (n m) = (array-dimensions matrix)
-        for j from 0 below n
-        collect (loop for i from 0 below m
-                      collect (aref matrix i j))))
+  (loop for j from 0 below (array-dimension matrix 0)
+        collect (matrix-column matrix j)))
 
 (defun median (list)
   "The median of LIST of numbers"
@@ -65,4 +71,26 @@
         (/ (+ (aref numbers (1- (floor n 2)))
               (aref numbers (floor n 2)))
            2))))
+
+(defun vec+ (u v)
+  (mapcar #'+ u v))
+
+(defun vec- (u v)
+  (mapcar #'- u v))
+
+(defun vec= (u v)
+  (every (lambda (ui vi) (= ui vi)) u v))
+
+(defun vec-dot (u v)
+  (reduce #'+ (mapcar #'* u v)))
+
+(defun vec-scale (u k)
+  (mapcar (lambda (ui) (* ui k)) u))
+
+(defun pnorm (u p)
+  (expt (reduce #'+ (mapcar (lambda (ui) (expt (abs ui) p)) u))
+        (/ p)))
+
+(defun normalized (u p)
+  (vec-scale u (/ (pnorm u p))))
 
