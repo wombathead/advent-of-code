@@ -2,28 +2,14 @@
 
 (in-package :aoc)
 
+;;; reading files
+
 (defun read-from-file (filename)
   "Return contents of FILENAME as a list of strings"
   (with-open-file (stream filename)
     (loop for line = (read-line stream NIL)
           while line
           collect line)))
-
-(defun print-hash-table (ht)
-  (maphash (lambda (k v) (format t "~A: ~A~%" k v)) ht))
-
-(defun empty-string-p (string)
-  (zerop (length string)))
-
-(defun char-difference (a b)
-  (- (char-code a) (char-code b)))
-
-(defun chars->string (character-list)
-  (coerce character-list 'string))
-
-(defun nth-char= (string n character)
-  "Return T if the Nth character of STRING equals CHARACTER"
-  (char= (char string n) character)) 
 
 (defun file->matrix (filename)
   "Read FILENAME as a matrix of characters"
@@ -49,6 +35,33 @@
          (m (length data))
          (n (length (first data))))
     (make-array (list m n) :initial-contents data)))
+
+(defun print-hash-table (ht)
+  (maphash (lambda (k v) (format t "~A: ~A~%" k v)) ht))
+
+;;; strings 
+
+(defun multiple-regex-replace (string regexes replacements)
+  (loop for regex in regexes
+        for replacement in replacements
+        for s = (ppcre:regex-replace-all regex string replacement)
+        then (ppcre:regex-replace-all regex s replacement)
+        finally (return s)))
+
+(defun empty-string-p (string)
+  (zerop (length string)))
+
+(defun char-difference (a b)
+  (- (char-code a) (char-code b)))
+
+(defun chars->string (character-list)
+  (coerce character-list 'string))
+
+(defun nth-char= (string n character)
+  "Return T if the Nth character of STRING equals CHARACTER"
+  (char= (char string n) character)) 
+
+;;; matrices
 
 (defun matrix-row (matrix i)
   "Return row I of MATRIX as a list"
