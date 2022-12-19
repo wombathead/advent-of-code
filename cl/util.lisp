@@ -114,6 +114,12 @@
   (expt (reduce #'+ (mapcar (lambda (ui) (expt (abs ui) p)) u))
         (/ p)))
 
+(defun manhattan-distance (u v)
+  (pnorm (vec- u v) 1))
+
+(defun euclidean-distance (u v)
+  (pnorm (vec- u v) 2))
+
 (defun normalized (u p)
   (vec-scale u (/ (pnorm u p))))
 
