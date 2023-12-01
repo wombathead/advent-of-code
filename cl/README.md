@@ -10,6 +10,6 @@ To load and run:
 ```
 
 To update the system definition after solving a problem:
-- add a `:component` to `aoc.asd`
+- add a `:component` for the file to `aoc.asd`
 - add an `:export` for the added functions in `package.lisp`
 - run `(asdf:clear-configuration)` and `(asdf:make :aoc)`

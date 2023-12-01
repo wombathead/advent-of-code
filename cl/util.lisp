@@ -143,7 +143,8 @@
 (defun s-t-path (pred start end)
   "Return a path from START to END in predecessor hashtable PRED"
   (loop for u = start then v
-        for (v w) in (gethash u pred)
+        ;; TODO: assumes there is exactly one predecessor to U. Change/keep?
+        for (v w) = (first (gethash u pred))
         if (null u)
         return nil
         else collect u
@@ -165,7 +166,28 @@
         do (loop for (v w) in (gethash u graph)
                  do (push (list u w) (gethash v g)))
         finally (return g)))
-
 (defun total-edges (g)
   (loop for u in (hash-table-keys g)
         sum (length (gethash u g))))
+
+(defun topological-sort (dag)
+  (loop with out-degree = (loop with ht = (make-hash-table :test (hash-table-test dag))
+                                for u in (hash-table-keys dag)
+                                do (setf (gethash u ht) (length (gethash u dag)))
+                                finally (return ht))
+        
+        for sink = (loop for u in (hash-table-keys out-degree)
+                         if (zerop (gethash u out-degree))
+                         do (decf (gethash u out-degree))
+                         and return u)
+
+        do (loop for u in (hash-table-keys out-degree)
+                 do (loop for v in (gethash u dag)
+                          if (funcall (hash-table-test dag) v sink)
+                          do (decf (gethash u out-degree))))
+        while sink
+        collect sink into ordering
+        finally (return (reverse ordering))))
+
+(defun children (graph parent)
+  (gethash parent graph))
