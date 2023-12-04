@@ -37,5 +37,4 @@
     (loop for line in (read-from-file filename)
           for ldigit = (description->digit (search-leftmost-description line descriptions))
           for rdigit = (description->digit (search-rightmost-description line descriptions))
-          for number = (+ (* 10 ldigit) rdigit)
-          sum number)))
+          sum (+ (* 10 ldigit) rdigit))))
