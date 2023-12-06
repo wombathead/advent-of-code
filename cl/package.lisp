@@ -10,6 +10,7 @@
            #:empty-string-p
            #:char-difference
 
+           #:aoc-2023-06a #:aoc-2023-06b
            #:aoc-2023-05a #:aoc-2023-05b
            #:aoc-2023-04a #:aoc-2023-04b
            #:aoc-2023-03a #:aoc-2023-03b
