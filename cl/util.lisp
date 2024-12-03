@@ -39,6 +39,37 @@
 (defun print-hash-table (ht)
   (maphash (lambda (k v) (format t "~A: ~A~%" k v)) ht))
 
+
+;;; sequences
+
+(defun flatten (lists)
+  "Flatten lists by one level, TODO: more levels"
+  (reduce #'nconc lists))
+
+(defun slice (column lists)
+  (mapcar (lambda (list) (nth column list)) lists))
+
+
+(defun monotone-increasing-p (sequence &key (strict nil))
+  (let ((test (if strict #'< #'<=)))
+    (if (second sequence)
+        (and (funcall test (first sequence) (second sequence))
+             (monotone-increasing-p (rest sequence)))
+        t)))
+
+(defun monotone-decreasing-p (sequence &key (strict nil))
+  (monotone-increasing-p (reverse sequence) :strict strict))
+
+(defun monotonep (sequence &key (strict nil))
+  (or (monotone-increasing-p sequence :strict strict)
+      (monotone-decreasing-p sequence :strict strict)))
+
+(defun remove-nth (n list)
+  (loop for item in list
+        for i from 0
+        unless (= i n) collect item))
+
+
 ;;; strings 
 
 (defun multiple-regex-replace (string regexes replacements)
@@ -93,6 +124,10 @@
               (aref numbers (floor n 2)))
            2))))
 
+(defun sorted (sequence predicate)
+  (let ((seq (copy-seq sequence)))
+    (sort seq predicate)))
+
 ;;; linear algebra
 
 (defun vec+ (u v)
@@ -145,8 +180,7 @@
   (loop for u = start then v
         ;; TODO: assumes there is exactly one predecessor to U. Change/keep?
         for (v w) = (first (gethash u pred))
-        if (null u)
-        return nil
+        if (null u) return nil
         else collect u
         until (funcall (hash-table-test pred) u end)))
 
@@ -154,8 +188,7 @@
   "Find total weight of path from START to END in predecessor hashtable PRED"
   (loop for u = start then v
         for (v w) = (first (gethash u pred))
-        if (null v)
-        return nil     ;; TODO: is this good?
+        if (null v) return nil     ;; TODO: is this good?
         else sum w   
         until (funcall (hash-table-test pred) v end)))
 
@@ -191,3 +224,5 @@
 
 (defun children (graph parent)
   (gethash parent graph))
+
+

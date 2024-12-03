@@ -1,5 +1,5 @@
 (defpackage #:aoc
-  (:use #:cl)
+  (:use #:cl #:iterate)
   (:import-from #:alexandria
                 #:hash-table-keys)
   (:import-from #:str
