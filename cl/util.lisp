@@ -11,6 +11,14 @@
           while line
           collect line)))
 
+
+(defun read-character-grid (filename)
+  (let* ((lines (read-from-file filename))
+         (m (length lines))
+         (n (length (first lines))))
+    (make-array (list m n) :initial-contents lines)))
+
+
 (defun file->matrix (filename)
   "Read FILENAME as a matrix of characters"
   (let ((input (read-from-file filename)))
@@ -42,6 +50,23 @@
 
 ;;; sequences
 
+(defun all-permutations (list)
+  (cond ((null list) nil)
+        ((null (cdr list)) (list list))
+        (t (loop for element in list
+                 append (mapcar (lambda (l) (cons element l))
+                                (all-permutations (remove element list)))))))
+
+
+(defun all-combinations (k list)
+  (let (combinations)
+    (alexandria:map-combinations (lambda (c) (push c combinations)) list :length k)
+    combinations))
+
+
+(defun list-product (list &rest more-lists)
+  (alexandria:map-product 'list list more-lists))
+
 (defun flatten (lists)
   "Flatten lists by one level, TODO: more levels"
   (reduce #'nconc lists))
@@ -68,6 +93,12 @@
   (loop for item in list
         for i from 0
         unless (= i n) collect item))
+
+
+(defun replace-nth (n item list)
+  (loop for e in list
+        for i from 0
+        collect (if (= i n) item e)))
 
 
 ;;; strings 

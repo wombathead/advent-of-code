@@ -1,21 +1,19 @@
 (defpackage #:aoc
   (:use #:cl #:iterate)
-  (:import-from #:alexandria
-                #:hash-table-keys)
-  (:import-from #:str
-                #:words
-                #:split)
-  
-  (:export #:read-from-file
-           #:empty-string-p
-           #:char-difference
 
-           #:aoc-2023-06a #:aoc-2023-06b
-           #:aoc-2023-05a #:aoc-2023-05b
-           #:aoc-2023-04a #:aoc-2023-04b
-           #:aoc-2023-03a #:aoc-2023-03b
-           #:aoc-2023-02a #:aoc-2023-02b
+  (:export #:read-from-file
+
+           #:aoc-2024-01a #:aoc-2024-01b
+           #:aoc-2024-02a #:aoc-2024-02b
+           #:aoc-2024-03a #:aoc-2024-03b
+           #:aoc-2024-04a #:aoc-2024-04b
+
            #:aoc-2023-01a #:aoc-2023-01b
+           #:aoc-2023-02a #:aoc-2023-02b
+           #:aoc-2023-03a #:aoc-2023-03b
+           #:aoc-2023-04a #:aoc-2023-04b
+           #:aoc-2023-05a #:aoc-2023-05b
+           #:aoc-2023-06a #:aoc-2023-06b
 
            #:aoc-2022-01a #:aoc-2022-01b
            #:aoc-2022-02a #:aoc-2022-02b  
