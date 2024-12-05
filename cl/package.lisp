@@ -1,12 +1,16 @@
 (defpackage #:aoc
   (:use #:cl #:iterate)
 
+  (:import-from #:alexandria
+                #:hash-table-keys)
+
   (:export #:read-from-file
 
            #:aoc-2024-01a #:aoc-2024-01b
            #:aoc-2024-02a #:aoc-2024-02b
            #:aoc-2024-03a #:aoc-2024-03b
            #:aoc-2024-04a #:aoc-2024-04b
+           #:aoc-2024-05a #:aoc-2024-05b
 
            #:aoc-2023-01a #:aoc-2023-01b
            #:aoc-2023-02a #:aoc-2023-02b

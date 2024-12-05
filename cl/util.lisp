@@ -101,6 +101,33 @@
         collect (if (= i n) item e)))
 
 
+;;; orderings
+
+(defun define-ordering> (elements)
+  "Define a total order ELEMENTS = '(A B C D ...) = A > B > C > D > ..."
+  (lambda (x y) (< (position x elements) (position y elements))))
+
+
+(defun define-ordering< (elements)
+  (define-ordering> (reverse elements)))
+
+
+(defun ordering> (x y ordering)
+  (funcall ordering x y))
+
+
+(defun ordering< (x y ordering)
+  (ordering> y x ordering))
+
+
+(defun ordering<= (x y ordering)
+  (not (ordering> x y ordering)))
+
+
+(defun ordering>= (x y ordering)
+  (not (ordering< x y ordering)))
+
+
 ;;; strings 
 
 (defun multiple-regex-replace (string regexes replacements)
@@ -230,6 +257,7 @@
         do (loop for (v w) in (gethash u graph)
                  do (push (list u w) (gethash v g)))
         finally (return g)))
+
 (defun total-edges (g)
   (loop for u in (hash-table-keys g)
         sum (length (gethash u g))))
@@ -257,3 +285,10 @@
   (gethash parent graph))
 
 
+(defun graph-node-restriction (ht nodes)
+  ;; TODO: deal with weighted edges
+  (let ((graph (make-hash-table :test (hash-table-test ht))))
+    (loop for u in (hash-table-keys ht)
+          if (member u nodes)
+            do (setf (gethash u graph) (intersection nodes (gethash u ht))))
+    graph))
